@@ -15,3 +15,10 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# Local credentials — never commit (public repo)
+.env
+.env.*
+
+# Scratch area for third-party drafts under review — not for publication
+temp/

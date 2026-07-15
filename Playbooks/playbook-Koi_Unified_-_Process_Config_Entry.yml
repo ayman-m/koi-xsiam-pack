@@ -1,0 +1,664 @@
+id: Koi Unified - Process Config Entry
+version: -1
+fromversion: 6.10.0
+name: Koi Unified - Process Config Entry
+description: |-
+  Processes a single "Koi Script Runner" configuration entry: validates it
+  (reporting invalid entries instead of silently skipping them), honors the
+  per-entry disabled flag, executes the script via "Koi Unified - Execute
+  Endpoint Script", and sends an optional email notification with the outcome.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: c0ffee02-0000-4000-8000-000000000000
+    type: start
+    task:
+      id: c0ffee02-0000-4000-8000-000000000000
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      type: start
+    nexttasks:
+      '#none#':
+      - "21"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "21":
+    id: "21"
+    taskid: c0ffee02-0000-4000-8000-000000000021
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000021
+      version: -1
+      name: Reset iteration context
+      description: Clears leftover context from the previous loop iteration (loop iterations share the sub-playbook context).
+      iscommand: false
+      brand: ""
+      script: DeleteContext
+      type: regular
+    scriptarguments:
+      all:
+        simple: "yes"
+      subplaybook:
+        simple: auto
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 120
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "1":
+    id: "1"
+    taskid: c0ffee02-0000-4000-8000-000000000001
+    type: condition
+    task:
+      id: c0ffee02-0000-4000-8000-000000000001
+      version: -1
+      name: Is the config entry disabled?
+      description: Entries with "disabled" set to true are skipped.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.disabled
+          operator: isTrue
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "2"
+      "yes":
+      - "11"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 200
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: c0ffee02-0000-4000-8000-000000000002
+    type: condition
+    task:
+      id: c0ffee02-0000-4000-8000-000000000002
+      version: -1
+      name: Is the config entry valid?
+      description: 'Required: script.name or script.uuid, target.endpoint_os, and at least one of target.endpoint_groups / target.endpoint_hostnames.'
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.script.name
+          operator: isNotEmpty
+          right:
+            value: {}
+        - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.script.uuid
+          operator: isNotEmpty
+          right:
+            value: {}
+      - - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.target.endpoint_os
+          operator: isNotEmpty
+          right:
+            value: {}
+      - - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.target.endpoint_groups
+          operator: isNotEmpty
+          right:
+            value: {}
+        - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.target.endpoint_hostnames
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "3"
+      "yes":
+      - "4"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 380
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: c0ffee02-0000-4000-8000-000000000003
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000003
+      version: -1
+      name: Report invalid config entry
+      description: Prints an error entry with a given message.
+      iscommand: false
+      brand: ""
+      script: PrintErrorEntry
+      type: regular
+    scriptarguments:
+      message:
+        simple: 'Koi Script Runner: skipping an invalid configuration entry. Each entry requires script.name (or script.uuid), target.endpoint_os, and target.endpoint_groups or target.endpoint_hostnames. Entry: ${inputs.config_entry}'
+    nexttasks:
+      '#none#':
+      - "11"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 850,
+          "y": 560
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: c0ffee02-0000-4000-8000-000000000004
+    type: playbook
+    task:
+      id: c0ffee02-0000-4000-8000-000000000004
+      version: -1
+      name: Execute the endpoint script
+      description: Executes the configured script on the targeted endpoints.
+      playbookId: Koi Unified - Execute Endpoint Script
+      iscommand: false
+      brand: ""
+      type: playbook
+    scriptarguments:
+      script_name:
+        simple: ${inputs.config_entry.script.name}
+      script_uuid:
+        simple: ${inputs.config_entry.script.uuid}
+      endpoint_os:
+        simple: ${inputs.config_entry.target.endpoint_os}
+      endpoint_groups:
+        simple: ${inputs.config_entry.target.endpoint_groups}
+      endpoint_hostnames:
+        simple: ${inputs.config_entry.target.endpoint_hostnames}
+      polling_interval_in_seconds:
+        simple: ${inputs.config_entry.script.polling_interval_in_seconds}
+      timeout_in_seconds:
+        simple: ${inputs.config_entry.script.timeout_in_seconds}
+    loop:
+      iscommand: false
+      exitCondition: ""
+      max: 100
+      wait: 1
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 560
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: c0ffee02-0000-4000-8000-000000000005
+    type: condition
+    task:
+      id: c0ffee02-0000-4000-8000-000000000005
+      version: -1
+      name: Was the script run successful?
+      description: Routes to the success or failure notification message.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: ScriptResult.ok
+          operator: isTrue
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "7"
+      "yes":
+      - "6"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 740
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: c0ffee02-0000-4000-8000-000000000006
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000006
+      version: -1
+      name: Create success message
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: koi_mail.subject
+      value:
+        simple: '[Koi Script Runner] SUCCESS: ${inputs.config_entry.script.name} (${inputs.config_entry.target.endpoint_os})'
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "22"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 920
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "7":
+    id: "7"
+    taskid: c0ffee02-0000-4000-8000-000000000007
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000007
+      version: -1
+      name: Create failure message
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: koi_mail.subject
+      value:
+        simple: '[Koi Script Runner] FAILURE: ${inputs.config_entry.script.name} (${inputs.config_entry.target.endpoint_os})'
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "23"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 680,
+          "y": 920
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "8":
+    id: "8"
+    taskid: c0ffee02-0000-4000-8000-000000000008
+    type: condition
+    task:
+      id: c0ffee02-0000-4000-8000-000000000008
+      version: -1
+      name: Send a notification?
+      description: A notification is sent only when recipients are configured for this entry.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: inputs.config_entry.notification.recipients
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "10"
+      "yes":
+      - "9"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1100
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "9":
+    id: "9"
+    taskid: c0ffee02-0000-4000-8000-000000000009
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000009
+      version: -1
+      name: Send notification email
+      description: Send an email with the script run outcome. Uses the configured send-mail instance when specified, otherwise any enabled mail sender.
+      iscommand: true
+      brand: ""
+      script: '|||send-mail'
+      type: regular
+    scriptarguments:
+      to:
+        complex:
+          root: inputs.config_entry.notification
+          accessor: recipients
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ','
+      subject:
+        complex:
+          root: koi_mail
+          accessor: subject
+      body:
+        complex:
+          root: koi_mail
+          accessor: body
+      using:
+        complex:
+          root: inputs.config_entry.notification.sendmail_instance
+          accessor: name
+    nexttasks:
+      '#none#':
+      - "10"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 1280
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "10":
+    id: "10"
+    taskid: c0ffee02-0000-4000-8000-00000000000a
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-00000000000a
+      version: -1
+      name: Cleanup workspace
+      description: Delete the per-entry working keys from context.
+      iscommand: false
+      brand: ""
+      script: DeleteContext
+      type: regular
+    scriptarguments:
+      key:
+        simple: ScriptResult,koi_mail,koi_script_uid,ErrorEntries
+    nexttasks:
+      '#none#':
+      - "11"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1460
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "22":
+    id: "22"
+    taskid: c0ffee02-0000-4000-8000-000000000022
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000022
+      version: -1
+      name: Create success body
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: koi_mail.body
+      value:
+        simple: 'The Koi script "${inputs.config_entry.script.name}" completed successfully on the "${inputs.config_entry.target.endpoint_os}" targets (groups: ${inputs.config_entry.target.endpoint_groups}, hostnames: ${inputs.config_entry.target.endpoint_hostnames}). Action ID: ${ScriptResult.action_id}'
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "8"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 1010
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "23":
+    id: "23"
+    taskid: c0ffee02-0000-4000-8000-000000000023
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000023
+      version: -1
+      name: Create failure body
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: koi_mail.body
+      value:
+        simple: 'The Koi script "${inputs.config_entry.script.name}" FAILED for the "${inputs.config_entry.target.endpoint_os}" targets (groups: ${inputs.config_entry.target.endpoint_groups}, hostnames: ${inputs.config_entry.target.endpoint_hostnames}). Reason: ${ScriptResult.reason}'
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "8"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 680,
+          "y": 1010
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "11":
+    id: "11"
+    taskid: c0ffee02-0000-4000-8000-00000000000b
+    type: title
+    task:
+      id: c0ffee02-0000-4000-8000-00000000000b
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ""
+      type: title
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1640
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1690,
+        "width": 1030,
+        "x": 50,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: config_entry
+  value: {}
+  required: true
+  description: 'One entry of the Koi Script Runner configuration. Required nodes: script.name (or script.uuid), target.endpoint_os, and target.endpoint_groups or target.endpoint_hostnames. Optional: disabled, script.polling_interval_in_seconds, script.timeout_in_seconds, notification.recipients, notification.sendmail_instance.name.'
+  playbookInputQuery: null
+outputs: []
+tags:
+- koi
+quiet: false
