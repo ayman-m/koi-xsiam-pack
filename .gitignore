@@ -1,0 +1,17 @@
+# demisto-sdk generated dev/test scaffolding (same convention as demisto/content)
+CommonServerPython.py
+demistomock.py
+conftest.py
+
+# Python artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
