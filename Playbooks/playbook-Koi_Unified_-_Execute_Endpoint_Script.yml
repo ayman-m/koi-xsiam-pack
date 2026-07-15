@@ -907,7 +907,8 @@ tasks:
                   simple: |-
                     {
                       "ok": false,
-                      "reason": "No connected, unisolated endpoints matched the target filters (os/groups/hostnames)."
+                      "skipped": true,
+                      "reason": "No connected, unisolated endpoints matched the target filters (os/groups/hostnames) — nothing to do this run."
                     }
               template_type:
                 value:
@@ -1050,8 +1051,11 @@ outputs:
   description: 'true: success, false: failure.'
   type: boolean
 - contextPath: ScriptResult.reason
-  description: The reason the script run failed (empty on success).
+  description: The reason the script run failed or was skipped (empty on success).
   type: string
+- contextPath: ScriptResult.skipped
+  description: 'true when the entry was valid but no connected endpoints matched the target filters — nothing to execute this run. Not an error.'
+  type: boolean
 - contextPath: ScriptResult.action_id
   description: The Action Center action ID of the script execution (on success).
   type: string

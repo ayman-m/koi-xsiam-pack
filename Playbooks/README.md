@@ -65,6 +65,10 @@ Everything else is optional.
 - Notifications are brand-agnostic (`|||send-mail` + optional `using` instance)
   instead of hard-binding one mail integration.
 - Per-entry polling/timeout overrides with sane defaults (60 s / 1800 s).
+- Three-state result per entry: `ok` (script ran), `skipped` (valid entry but
+  no connected endpoints currently match — logged as info, **no failure
+  email**), and failed (real error — failure email sent). Keeps recurring
+  jobs quiet for not-yet-populated OS scopes without hiding real failures.
 
 ## Known limitation
 
