@@ -119,6 +119,7 @@ const intro = [
     ["Koi Parsing Rule", "Normalizes raw KOI events arriving in the koi_koi_raw dataset and promotes alert and audit fields for modeling."],
     ["Koi Modeling Rule", "Maps KOI alert and audit events to the Cortex Data Model (XDM)."],
     ["Koi Alerts Dashboard", "Ready-made XSIAM dashboard visualizing KOI alert activity."],
+    ["Koi Unified Script Runner playbooks", "Three playbooks that run KOI script packages on Cortex-Agent endpoints on a schedule, driven by a Job and configured through a JSON List (section 10)."],
   ]),
   h2("1.3 What's new in pack 1.3.0"),
   bullet([{ text: "13 new read-only commands", bold: true }, { text: " covering devices, device inventory, findings, groups, users, remediations, approval requests, runtime (hardening) policies, Koidex catalog search and risk reports, and fetch-state diagnostics." }]),
@@ -276,35 +277,91 @@ const dashboard = [
   p("The pack ships the \"Koi Alerts Dashboard\", which visualizes KOI alert activity from the koi_koi_raw dataset. After installing the pack in XSIAM, open Dashboards & Reports, locate Koi Alerts Dashboard, and add it to your dashboards. Data appears once event collection has run (section 8)."),
 ];
 
-/* ---------------- 10. Deploy full pack via demisto-sdk ---------------- */
+/* ---------------- 10. Script Runner playbooks ---------------- */
+const playbooks = [
+  h1("10. Koi Unified Script Runner Playbooks"),
+  p("These three playbooks run KOI script packages (for example, the KOI deployment script) on Cortex-Agent endpoints on a recurring schedule. They are designed to be attached to a time-triggered Job and are configured entirely through a JSON List — retargeting or adding scripts never requires editing a playbook."),
+  h2("10.1 Architecture"),
+  table([3400, 5960], [
+    ["Playbook", "Role"],
+    ["Koi Unified - Script Runner", "Job entry point. Loads the \"Koi Script Runner\" List and loops over its entries — one iteration per entry, each in an isolated context. Closes its own investigation when done."],
+    ["Koi Unified - Process Config Entry", "Per-entry logic: honors the disabled flag, validates the entry (invalid entries are reported in the war room, never silently dropped), invokes the executor, routes the outcome, sends the optional email notification, and cleans up."],
+    ["Koi Unified - Execute Endpoint Script", "Resolves the script name to its Action Center UUID (or uses a provided UUID), targets connected and unisolated endpoints filtered by OS, groups, and hostnames, executes the script with polling, and returns a structured ScriptResult."],
+  ]),
+  h2("10.2 Configuration — the \"Koi Script Runner\" List"),
+  p("Create a JSON List named exactly \"Koi Script Runner\" (Settings → Configurations → Object Setup → Lists) containing an array of entries:"),
+  code('['),
+  code('  {'),
+  code('    "disabled": false,'),
+  code('    "script": { "name": "KOI Deployment Script - Windows" },'),
+  code('    "target": {'),
+  code('      "endpoint_groups": ["KOI Endpoints"],'),
+  code('      "endpoint_hostnames": [],'),
+  code('      "endpoint_os": "Windows"'),
+  code('    },'),
+  code('    "notification": {'),
+  code('      "sendmail_instance": { "name": "internal-smtp" },'),
+  code('      "recipients": ["ops@example.com"]'),
+  code('    }'),
+  code('  }'),
+  code(']'),
+  table([3300, 1300, 4760], [
+    ["Field", "Required", "Description"],
+    ["disabled", "No", "Set true to skip the entry entirely."],
+    ["script.name", "Yes*", "Exact script name in the Action Center Script Library. (*Either name or uuid.)"],
+    ["script.uuid", "No", "Script UUID — takes precedence over name and disambiguates duplicate names."],
+    ["script.polling_interval_in_seconds", "No", "Poll cadence while the script runs (default 60)."],
+    ["script.timeout_in_seconds", "No", "Overall execution timeout (default 1800)."],
+    ["target.endpoint_os", "Yes", "Windows, macOS, or Linux (case-insensitive)."],
+    ["target.endpoint_groups", "One of these", "Endpoint group names to scope execution."],
+    ["target.endpoint_hostnames", "One of these", "Specific hostnames to scope execution."],
+    ["notification.recipients", "No", "Email recipients for the per-entry outcome; omit for no email."],
+    ["notification.sendmail_instance.name", "No", "Specific mail-sender instance; omit to use any enabled one."],
+  ]),
+  h2("10.3 How scripts are matched to endpoints"),
+  p("The pairing of script to operating system is declared per entry, and enforced at dispatch time: each entry queries endpoints with the entry's groups/hostnames AND its endpoint_os as a platform filter, restricted to connected, unisolated agents. A Windows entry therefore can never execute on a Mac even when both target the same mixed endpoint group — and one shared group can serve every OS, with each entry picking out its own members."),
+  h2("10.4 Job setup"),
+  step("Investigation & Response → Automation → Jobs → New Job."),
+  step([{ text: "Trigger: " }, { text: "Time triggered", bold: true }, { text: ", choose the recurrence (e.g., hourly)." }]),
+  step([{ text: "Playbook: " }, { text: "Koi Unified - Script Runner", bold: true }, { text: ". Save, then use Run now for an immediate first run." }]),
+  h2("10.5 Run outcomes"),
+  table([2200, 3800, 3360], [
+    ["Outcome", "Meaning", "Notification"],
+    ["ok: true (+ action_id)", "Script dispatched and completed; action_id links to Action Center.", "Success email (when recipients configured)."],
+    ["skipped: true", "Entry valid, but no connected endpoints currently match the target scope — nothing to do this run. Logged as an info entry.", "None — keeps recurring jobs quiet for not-yet-populated OS scopes."],
+    ["ok: false + reason", "Real failure: script not found, ambiguous name, endpoint query error, or execution failure. The reason states which.", "Failure email (when recipients configured)."],
+  ]),
+];
+
+/* ---------------- 11. Deploy full pack via demisto-sdk ---------------- */
 const sdkDeploy = [
-  h1("10. Deploying the Full Pack as a Single Object (demisto-sdk)"),
+  h1("11. Deploying the Full Pack as a Single Object (demisto-sdk)"),
   p("The pack can be delivered to a tenant as one artifact — a pack zip — using Palo Alto Networks' demisto-sdk. This is the recommended path for dev/test tenants and CI pipelines; production tenants normally install from the Marketplace."),
-  h2("10.1 One-time setup"),
+  h2("11.1 One-time setup"),
   step([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
   step([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
   step([{ text: "Set the connection environment variables: ", bold: true }, { text: "DEMISTO_BASE_URL", font: "Consolas", size: 20 }, { text: " (the api- URL of the tenant), " }, { text: "DEMISTO_API_KEY", font: "Consolas", size: 20 }, { text: ", and " }, { text: "XSIAM_AUTH_ID", font: "Consolas", size: 20 }, { text: " (the key's ID)." }]),
-  h2("10.2 Build and push"),
+  h2("11.2 Build and push"),
   p("Validate, build the single pack artifact, and upload:"),
   code("demisto-sdk validate -i Packs/Koi/Playbooks"),
   code("demisto-sdk zip-packs -i Packs/Koi -o zipped"),
   code("demisto-sdk upload -i Packs/Koi -z --xsiam"),
-  h2("10.3 Notes verified in practice"),
+  h2("11.3 Notes verified in practice"),
   bullet([{ text: "API key type matters. ", bold: true }, { text: "demisto-sdk sends the API key as-is, which works only with a Standard XSIAM API key. With an Advanced key the SDK cannot connect; in that case build the artifact with zip-packs and POST zipped/uploadable_packs/Koi.zip (multipart, field name \"file\") to https://api-<tenant>/xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true using the advanced-key signed headers. Note the endpoint is under /xsoar/, not /xsoar/public/v1/." }]),
   bullet([{ text: "API modules. ", bold: true }, { text: "The Koi integration imports ContentClientApiModule; the build inlines it from Packs/ApiModules/Scripts/ContentClientApiModule/ — copy that folder from the demisto/content repository into your content repo before running zip-packs." }]),
   bullet([{ text: "Pack items become system-owned. ", bold: true }, { text: "After a pack install, its items (playbooks, integration) are marked system and reject individual item uploads. Ship subsequent changes as a new pack version (bump currentVersion in pack_metadata.json, add a release note, re-upload the zip)." }]),
-  p("After upload, the pack appears in the tenant at the new version and every item (integration, playbooks, rules, dashboard) is installed together — see section 12 to validate."),
+  p("After upload, the pack appears in the tenant at the new version and every item (integration, playbooks, rules, dashboard) is installed together — see section 13 to validate."),
 ];
 
 /* ---------------- 11. Manual onboarding ---------------- */
 const manualOnboard = [
-  h1("11. Onboarding Individual Items Manually"),
+  h1("12. Onboarding Individual Items Manually"),
   p("If you prefer to adopt only part of the pack (or cannot use the SDK), each item can be onboarded by hand in the tenant UI. Import order matters where items reference each other by name."),
   table([2900, 6460], [
     ["Item", "How to onboard manually"],
     ["Integration (Koi.yml)", "Marketplace → install the KOI pack (recommended); or Settings → Configurations → Automation & Feed Integrations → Upload Integration and select the YAML."],
     ["Playbooks (3 files)", "Investigation & Response → Automation → Playbooks → Import. Import in dependency order: 1) Koi Unified - Execute Endpoint Script, 2) Koi Unified - Process Config Entry, 3) Koi Unified - Script Runner — sub-playbook references bind by name."],
-    ["Configuration List", "Settings → Configurations → Object Setup → Lists → New List. Name it exactly \"Koi Script Runner\", type JSON, and paste the configuration array (section 7 of the playbook README)."],
+    ["Configuration List", "Settings → Configurations → Object Setup → Lists → New List. Name it exactly \"Koi Script Runner\", type JSON, and paste the configuration array (section 10.2)."],
     ["Job", "Investigation & Response → Automation → Jobs → New Job. Time-triggered, choose the \"Koi Unified - Script Runner\" playbook, set the recurrence."],
     ["Parsing / Modeling Rules", "XSIAM: Settings → Data Management → Parsing Rules (and Modeling Rules) → add the content of the pack's .xif files as user-defined rules targeting dataset koi_koi_raw."],
     ["Koi Alerts Dashboard", "Dashboards & Reports → New Dashboard → Import, select Koi_Alerts_Dashboard.json."],
@@ -314,7 +371,7 @@ const manualOnboard = [
 
 /* ---------------- 12. Validation ---------------- */
 const validation = [
-  h1("12. Validating That Everything Works"),
+  h1("13. Validating That Everything Works"),
   p("Run these checks after any deployment (SDK, Marketplace, or manual). Each row gives the action and the evidence that proves the component is healthy."),
   table([2500, 3600, 3260], [
     ["Component", "How to validate", "Expected evidence"],
@@ -334,7 +391,7 @@ const validation = [
 
 /* ---------------- 13. Troubleshooting ---------------- */
 const troubleshooting = [
-  h1("13. Troubleshooting"),
+  h1("14. Troubleshooting"),
   table([2900, 3000, 3460], [
     ["Symptom", "Likely cause", "Resolution"],
     ["\"Authorization Error: Verify your API Key\"", "Key invalid, revoked, or pasted with whitespace", "Re-create the key (Settings → API Access, xt-Administrator role) and update the instance."],
@@ -348,7 +405,7 @@ const troubleshooting = [
 
 /* ---------------- 11. Support ---------------- */
 const support = [
-  h1("14. Support & References"),
+  h1("15. Support & References"),
   bullet([{ text: "KOI product documentation: " }, { text: "https://docs.koi.ai", font: "Consolas", size: 20 }]),
   bullet("Pack release notes: see the KOI pack page in the Cortex Marketplace."),
   bullet("For issues with the integration content, contact your Palo Alto Networks / KOI support channel."),
@@ -383,7 +440,7 @@ const doc = new Document({
     children: [
       ...cover, ...toc, ...intro, ...prereq, ...apikey, ...install,
       ...configure, ...verify, ...commands, ...events, ...dashboard,
-      ...sdkDeploy, ...manualOnboard, ...validation,
+      ...playbooks, ...sdkDeploy, ...manualOnboard, ...validation,
       ...troubleshooting, ...support,
     ],
   }],

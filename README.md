@@ -25,6 +25,28 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
    !koi-devices-list limit=5
    ```
 
+## Script Runner playbooks
+
+Three playbooks run KOI script packages (e.g., the KOI deployment script) on Cortex-Agent endpoints on a schedule — attached to a time-triggered **Job** and configured entirely through a JSON **List**, so retargeting never means editing a playbook:
+
+| Playbook | Role |
+|---|---|
+| `Koi Unified - Script Runner` | Job entry point — loads the `Koi Script Runner` List, loops over entries |
+| `Koi Unified - Process Config Entry` | Per entry: `disabled` flag, validation (invalid entries are *reported*), notification, cleanup |
+| `Koi Unified - Execute Endpoint Script` | Resolves script name→UUID, targets **connected, unisolated** endpoints by OS/groups/hostnames, runs with polling, returns `ScriptResult` |
+
+Each List entry couples one script with one OS scope — enforced at dispatch time via the endpoint query's platform filter, so a Windows script can never land on a Mac even in a mixed group:
+
+```json
+[
+  { "script": { "name": "KOI Deployment Script - Windows" },
+    "target": { "endpoint_groups": ["KOI Endpoints"], "endpoint_hostnames": [], "endpoint_os": "Windows" },
+    "notification": { "sendmail_instance": { "name": "internal-smtp" }, "recipients": ["ops@example.com"] } }
+]
+```
+
+Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800). Run outcomes are three-state: **ok** (executed, `action_id` returned, success email), **skipped** (no connected endpoints match the scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
+
 ## Deploying this pack to a tenant
 
 **As a single object (recommended for dev/test):** upload `dist/Koi.zip` — either via demisto-sdk:
