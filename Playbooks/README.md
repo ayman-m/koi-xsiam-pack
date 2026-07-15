@@ -70,6 +70,20 @@ Everything else is optional.
   email**), and failed (real error — failure email sent). Keeps recurring
   jobs quiet for not-yet-populated OS scopes without hiding real failures.
 
+## External prerequisites (referenced by name, not shipped in the pack)
+
+| Dependency | Where | Requirement |
+|---|---|---|
+| KOI script package(s) | Action Center → Scripts Library | Upload manually; Library name must match `script.name` exactly (or pin `script.uuid`) |
+| Endpoint group(s) | Endpoints → Endpoint Groups | Groups in `target.endpoint_groups` must exist and contain the intended agents |
+| Target agents | Endpoints | Installed, **connected**, unisolated, OS matching `endpoint_os` — otherwise the entry is `skipped` |
+| Configuration List | Settings → Object Setup → Lists | JSON List named exactly `Koi Script Runner` |
+| Mail-sender instance | Automation & Feed Integrations | Only for notifications; must be enabled and, when `sendmail_instance.name` is set, match that name exactly |
+
+All references bind by name at run time: renaming any of these without updating the
+List configuration causes the next run to fail or skip, with the reason recorded in
+the war room.
+
 ## Known limitation
 
 The main playbook reads the List named **`Koi Script Runner`** (fixed at the

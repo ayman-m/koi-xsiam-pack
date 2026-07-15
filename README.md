@@ -47,6 +47,15 @@ Each List entry couples one script with one OS scope — enforced at dispatch ti
 
 Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800). Run outcomes are three-state: **ok** (executed, `action_id` returned, success email), **skipped** (no connected endpoints match the scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
 
+**Before the first run — referenced by name, NOT shipped in this pack.** Create these on the tenant first, with names matching the List exactly:
+
+- **The KOI script package(s)** — upload to *Action Center → Scripts Library* yourself; the Library name must equal `script.name` character-for-character (or pin `script.uuid` to be rename-proof)
+- **The endpoint group(s)** named in `target.endpoint_groups` — must exist and contain the intended agents (connected, unisolated, OS matching `endpoint_os`)
+- **The List** — named exactly `Koi Script Runner`
+- **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
+
+Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
+
 ## Deploying this pack to a tenant
 
 **As a single object (recommended for dev/test):** upload `dist/Koi.zip` — either via demisto-sdk:
