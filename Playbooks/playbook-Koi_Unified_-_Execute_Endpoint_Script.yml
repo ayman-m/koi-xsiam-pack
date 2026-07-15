@@ -29,7 +29,7 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
+          "x": 695,
           "y": 50
         }
       }
@@ -67,8 +67,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 120
+          "x": 695,
+          "y": 220
         }
       }
     note: false
@@ -110,8 +110,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 200
+          "x": 695,
+          "y": 405
         }
       }
     note: false
@@ -150,8 +150,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 220,
-          "y": 380
+          "x": 1340,
+          "y": 960
         }
       }
     note: false
@@ -188,8 +188,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 680,
-          "y": 380
+          "x": 480,
+          "y": 590
         }
       }
     note: false
@@ -229,8 +229,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 680,
-          "y": 560
+          "x": 910,
+          "y": 775
         }
       }
     note: false
@@ -287,8 +287,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 680,
-          "y": 740
+          "x": 910,
+          "y": 960
         }
       }
     note: false
@@ -338,8 +338,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 920
+          "x": 1770,
+          "y": 1145
         }
       }
     note: false
@@ -392,8 +392,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 1100
+          "x": 1985,
+          "y": 1330
         }
       }
     note: false
@@ -471,8 +471,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 1280
+          "x": 2200,
+          "y": 1515
         }
       }
     note: false
@@ -508,8 +508,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 680,
-          "y": 1460
+          "x": 2200,
+          "y": 1700
         }
       }
     note: false
@@ -566,8 +566,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 1640
+          "x": 2630,
+          "y": 1700
         }
       }
     note: false
@@ -606,8 +606,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 1730
+          "x": 2630,
+          "y": 1885
         }
       }
     note: false
@@ -633,8 +633,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 450,
-          "y": 1820
+          "x": 1125,
+          "y": 2070
         }
       }
     note: false
@@ -691,8 +691,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 900,
-          "y": 560
+          "x": 50,
+          "y": 1885
         }
       }
     note: false
@@ -749,8 +749,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 900,
-          "y": 920
+          "x": 480,
+          "y": 1885
         }
       }
     note: false
@@ -807,8 +807,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 1120,
-          "y": 920
+          "x": 910,
+          "y": 1885
         }
       }
     note: false
@@ -865,8 +865,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 220,
-          "y": 1100
+          "x": 1340,
+          "y": 1885
         }
       }
     note: false
@@ -924,8 +924,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 220,
-          "y": 1280
+          "x": 1770,
+          "y": 1885
         }
       }
     note: false
@@ -982,8 +982,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 680,
-          "y": 1640
+          "x": 2200,
+          "y": 1885
         }
       }
     note: false

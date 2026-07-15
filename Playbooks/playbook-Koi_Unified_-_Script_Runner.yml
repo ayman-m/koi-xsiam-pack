@@ -123,8 +123,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 265,
-          "y": 400
+          "x": 470,
+          "y": 405
         }
       }
     note: false
@@ -165,8 +165,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 50,
-          "y": 580
+          "x": 480,
+          "y": 590
         }
       }
     note: false
@@ -199,8 +199,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 50,
-          "y": 760
+          "x": 265,
+          "y": 775
         }
       }
     note: false
@@ -235,8 +235,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 480,
-          "y": 580
+          "x": 50,
+          "y": 590
         }
       }
     note: false
@@ -263,7 +263,7 @@ tasks:
       {
         "position": {
           "x": 265,
-          "y": 940
+          "y": 960
         }
       }
     note: false
