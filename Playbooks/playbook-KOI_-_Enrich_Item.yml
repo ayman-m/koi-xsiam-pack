@@ -1,0 +1,427 @@
+id: KOI - Enrich Item
+version: -1
+fromversion: 6.10.0
+name: KOI - Enrich Item
+description: |-
+  Reusable enrichment for a KOI catalog item: pulls the KOI catalog risk and
+  compliance report (koi-koidex-risk-report) and the endpoints on which the item
+  is installed (koi-inventory-item-endpoints-list), and aggregates them into a
+  compact KoiEnrichment object (risk level/score, endpoint count, hostnames) plus
+  a markdown summary.
+
+  Both enrichment calls are best-effort (continue-on-error): if the KOI API is
+  unreachable, the playbook still returns whatever it could gather.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: koienr00-0000-4000-8000-000000000000
+    type: start
+    task:
+      id: koienr00-0000-4000-8000-000000000000
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      type: start
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "1":
+    id: "1"
+    taskid: koienr00-0000-4000-8000-000000000001
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000001
+      version: -1
+      name: Get KOI catalog risk report
+      description: Retrieves the KOI catalog risk and compliance report for the item.
+      iscommand: true
+      brand: ""
+      script: '|||koi-koidex-risk-report'
+      type: regular
+    scriptarguments:
+      item_id:
+        simple: ${inputs.item_id}
+      marketplace:
+        simple: ${inputs.marketplace}
+      using:
+        simple: ${inputs.instance_name}
+    nexttasks:
+      '#error#':
+      - "2"
+      '#none#':
+      - "2"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 200
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: koienr00-0000-4000-8000-000000000002
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000002
+      version: -1
+      name: Get endpoints with the item installed
+      description: Retrieves the endpoints on which the item is installed.
+      iscommand: true
+      brand: ""
+      script: '|||koi-inventory-item-endpoints-list'
+      type: regular
+    scriptarguments:
+      item_id:
+        simple: ${inputs.item_id}
+      marketplace:
+        simple: ${inputs.marketplace}
+      version:
+        simple: ${inputs.version}
+      limit:
+        simple: "200"
+      using:
+        simple: ${inputs.instance_name}
+    nexttasks:
+      '#error#':
+      - "3"
+      '#none#':
+      - "3"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 370
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: koienr00-0000-4000-8000-000000000003
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000003
+      version: -1
+      name: Aggregate endpoint exposure
+      description: Records how many endpoints have the item and their hostnames.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiEnrichment.hostnames
+      value:
+        complex:
+          root: Koi.Inventory.Endpoint
+          accessor: hostname
+          transformers:
+          - operator: uniq
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 540
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: koienr00-0000-4000-8000-000000000004
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000004
+      version: -1
+      name: Record endpoint count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiEnrichment.endpoint_count
+      value:
+        complex:
+          root: Koi.Inventory.Endpoint
+          accessor: id
+          transformers:
+          - operator: count
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 710
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: koienr00-0000-4000-8000-000000000005
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000005
+      version: -1
+      name: Record catalog risk
+      description: Copies the catalog risk level and score into the KoiEnrichment object.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiEnrichment.risk_level
+      value:
+        simple: ${Koi.KoidexRiskReport.risk_level}
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "6"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 880
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: koienr00-0000-4000-8000-000000000006
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000006
+      version: -1
+      name: Record catalog risk score
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiEnrichment.risk_score
+      value:
+        simple: ${Koi.KoidexRiskReport.risk}
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "7"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1050
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "7":
+    id: "7"
+    taskid: koienr00-0000-4000-8000-000000000007
+    type: regular
+    task:
+      id: koienr00-0000-4000-8000-000000000007
+      version: -1
+      name: Build enrichment summary
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiEnrichment.summary
+      value:
+        simple: |-
+          ### KOI Item Enrichment
+          | Field | Value |
+          |---|---|
+          | Item | ${inputs.item_id} (${inputs.marketplace}) |
+          | Catalog risk level | ${Koi.KoidexRiskReport.risk_level} |
+          | Catalog risk score | ${Koi.KoidexRiskReport.risk} |
+          | Installed on endpoints | ${KoiEnrichment.endpoint_count} |
+          | Hostnames | ${KoiEnrichment.hostnames} |
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "8"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1220
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "8":
+    id: "8"
+    taskid: koienr00-0000-4000-8000-000000000008
+    type: title
+    task:
+      id: koienr00-0000-4000-8000-000000000008
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ""
+      type: title
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1390
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1420,
+        "width": 380,
+        "x": 450,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: item_id
+  value: {}
+  required: true
+  description: The KOI catalog item ID (extension/package/MCP identifier).
+  playbookInputQuery: null
+- key: marketplace
+  value: {}
+  required: true
+  description: The item's marketplace (chrome_web_store, npm, vscode, docker, ...).
+  playbookInputQuery: null
+- key: version
+  value: {}
+  required: false
+  description: The item version (optional; narrows the endpoint lookup).
+  playbookInputQuery: null
+- key: instance_name
+  value:
+    simple: KOI_PAET
+  required: false
+  description: The KOI integration instance to use for the enrichment commands.
+  playbookInputQuery: null
+outputs:
+- contextPath: KoiEnrichment.risk_level
+  description: The KOI catalog risk level for the item.
+  type: string
+- contextPath: KoiEnrichment.risk_score
+  description: The KOI catalog numeric risk score.
+  type: number
+- contextPath: KoiEnrichment.endpoint_count
+  description: Number of endpoints on which the item is installed.
+  type: number
+- contextPath: KoiEnrichment.hostnames
+  description: Hostnames of endpoints on which the item is installed.
+  type: unknown
+- contextPath: KoiEnrichment.summary
+  description: Markdown enrichment summary.
+  type: string
+- contextPath: Koi.KoidexRiskReport
+  description: The full KOI catalog risk report.
+  type: unknown
+tags:
+- koi
+quiet: false

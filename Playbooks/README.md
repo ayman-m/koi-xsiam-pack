@@ -93,6 +93,27 @@ Validated on-tenant against simulated alerts: MCP/removed-from-marketplace → M
 
 > The triage playbooks call `koi-koidex-risk-report` through a configured KOI integration instance. Enrichment is best-effort (continue-on-error): if the instance can't reach the KOI API, the verdict still resolves from the alert's own fields.
 
+## Response & hunting playbooks
+
+Built on the read-only + governance commands, these extend triage into response and proactive hunting:
+
+| Playbook | Type | What it does |
+|---|---|---|
+| `KOI - Enrich Item` | Sub | Given an item + marketplace, gathers catalog risk (`koi-koidex-risk-report`) and endpoint exposure (`koi-inventory-item-endpoints-list`) into a `KoiEnrichment` object. Reusable by triage, block, and hunts. |
+| `KOI - Block and Remediate` | Main | Enriches an item, presents an **analyst approval gate** (showing risk + endpoint exposure), and only on approval adds it to the org blocklist (`koi-blocklist-items-add`). Safe by default — the write never fires without approval unless `auto_block=true`. Chains naturally from a Malicious triage verdict. |
+| `KOI - MCP Server Audit` | Scheduled | Enumerates MCP-server inventory, flags those at/above a risk threshold, and reports them. Attach to a time-triggered Job for continuous agentic-AI hygiene. |
+
+> **Connectivity requirement.** These playbooks call the KOI integration commands
+> (koidex, inventory, blocklist) through a configured KOI instance. The XSIAM
+> tenant's outbound path to `api.prod.koi.security` must be reachable for those
+> `/api/external/v2/*` command endpoints — if the tenant egress isn't allowlisted
+> by KOI, the commands return an edge `403 Forbidden` and enrichment/response
+> degrade to best-effort (playbooks still complete; they just can't act on KOI
+> data). Verify with `!koi-users-list limit=1`.
+
+> The MCP audit's inventory query uses `koi-inventory-list view=mcp_servers`;
+> confirm the `view`/filter matches your tenant's MCP categorization.
+
 ## External prerequisites (referenced by name, not shipped in the pack)
 
 | Dependency | Where | Requirement |

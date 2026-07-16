@@ -1,0 +1,327 @@
+id: KOI - MCP Server Audit
+version: -1
+fromversion: 6.10.0
+name: KOI - MCP Server Audit
+description: |-
+  Proactive hunt for risky MCP (Model Context Protocol) servers discovered by
+  KOI. Enumerates MCP-server inventory items, and for each one at or above the
+  configured risk level, posts a finding and (optionally) hands it to
+  KOI - Block & Remediate for an analyst-gated block.
+
+  Designed to run on a schedule (attach to a time-triggered Job). The inventory
+  query uses koi-inventory-list with view=mcp_servers; adjust the view/filter to
+  match your tenant's MCP categorization if needed.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: koimcp00-0000-4000-8000-000000000000
+    type: start
+    task:
+      id: koimcp00-0000-4000-8000-000000000000
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      type: start
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "1":
+    id: "1"
+    taskid: koimcp00-0000-4000-8000-000000000001
+    type: regular
+    task:
+      id: koimcp00-0000-4000-8000-000000000001
+      version: -1
+      name: List MCP servers from inventory
+      description: Retrieves MCP-server inventory items across the organization.
+      iscommand: true
+      brand: ""
+      script: '|||koi-inventory-list'
+      type: regular
+    scriptarguments:
+      view:
+        simple: mcp_servers
+      limit:
+        simple: "500"
+      using:
+        simple: ${inputs.instance_name}
+    nexttasks:
+      '#error#':
+      - "6"
+      '#none#':
+      - "2"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 200
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: koimcp00-0000-4000-8000-000000000002
+    type: condition
+    task:
+      id: koimcp00-0000-4000-8000-000000000002
+      version: -1
+      name: Any high-risk MCP servers found?
+      description: Filters the inventory to MCP servers at or above the configured risk level.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              complex:
+                root: Koi.Inventory
+                filters:
+                - - left:
+                      iscontext: true
+                      value:
+                        simple: Koi.Inventory.risk_level
+                    operator: inList
+                    right:
+                      iscontext: true
+                      value:
+                        simple: inputs.risk_levels
+                accessor: item_id
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "5"
+      "yes":
+      - "3"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 370
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: koimcp00-0000-4000-8000-000000000003
+    type: regular
+    task:
+      id: koimcp00-0000-4000-8000-000000000003
+      version: -1
+      name: Collect risky MCP servers
+      description: Records the risky MCP servers for reporting.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiMcpAudit.risky
+      value:
+        complex:
+          root: Koi.Inventory
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.Inventory.risk_level
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: inputs.risk_levels
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 250,
+          "y": 540
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: koimcp00-0000-4000-8000-000000000004
+    type: regular
+    task:
+      id: koimcp00-0000-4000-8000-000000000004
+      version: -1
+      name: Report risky MCP servers
+      description: Prints the risky MCP servers to the war room.
+      iscommand: false
+      brand: ""
+      script: Print
+      type: regular
+    scriptarguments:
+      value:
+        complex:
+          root: KoiMcpAudit.risky
+          transformers:
+          - operator: ParseJSON
+          - operator: JsonToTable
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 250,
+          "y": 710
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: koimcp00-0000-4000-8000-000000000005
+    type: title
+    task:
+      id: koimcp00-0000-4000-8000-000000000005
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ""
+      type: title
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 880
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: koimcp00-0000-4000-8000-000000000006
+    type: regular
+    task:
+      id: koimcp00-0000-4000-8000-000000000006
+      version: -1
+      name: Report inventory query failure
+      description: Prints an error entry with a given message.
+      iscommand: false
+      brand: ""
+      script: PrintErrorEntry
+      type: regular
+    scriptarguments:
+      message:
+        simple: 'KOI MCP Server Audit: failed to query the KOI inventory (koi-inventory-list). Verify the KOI integration instance connectivity.'
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 700,
+          "y": 370
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 910,
+        "width": 830,
+        "x": 250,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: risk_levels
+  value:
+    simple: high,critical
+  required: false
+  description: Comma-separated KOI risk levels to flag (e.g., high,critical).
+  playbookInputQuery: null
+- key: instance_name
+  value:
+    simple: KOI_PAET
+  required: false
+  description: The KOI integration instance to use.
+  playbookInputQuery: null
+outputs:
+- contextPath: KoiMcpAudit.risky
+  description: The list of risky MCP-server inventory items found.
+  type: unknown
+tags:
+- koi
+quiet: false
