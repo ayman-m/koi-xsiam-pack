@@ -70,6 +70,29 @@ Everything else is optional.
   email**), and failed (real error — failure email sent). Keeps recurring
   jobs quiet for not-yet-populated OS scopes without hiding real failures.
 
+## Alert triage playbooks
+
+A second, independent playbook set triages KOI **alerts** ingested into Cortex XSIAM.
+
+| Playbook | Role |
+|---|---|
+| `KOI - Alert Triage` | Main. Extracts context → enriches via `koi-koidex-risk-report` → computes a verdict → posts a summary → routes (auto-close / escalate / leave open). |
+| `KOI - Extract Alert Context` | Sub. Parses the `koi_context={...}` JSON the collector embeds in the alert description into the `KoiContext` object. |
+
+**Verdict logic** (keyed on KOI's own `alert_type` and `risk_level`, with the catalog risk level as a bonus signal):
+
+| Verdict | Condition | Action |
+|---|---|---|
+| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity, keep open |
+| **Benign** | `alert_type` = New Item **and** `risk_level` = Low | Auto-close (Resolved) |
+| **Suspicious** | anything else (safe default) | Keep open for analyst |
+
+Attach `KOI - Alert Triage` to KOI alerts (source `koi`). It reads the alert description from `${incident.details}`; if your alert generation maps the KOI payload to a different field, adjust the `alert_description` input on the extract sub-playbook.
+
+Validated on-tenant against simulated alerts: MCP/removed-from-marketplace → Malicious (escalated), new-low-risk extension → Benign (auto-closed), medium-risk dependency → Suspicious (kept open).
+
+> The triage playbooks call `koi-koidex-risk-report` through a configured KOI integration instance. Enrichment is best-effort (continue-on-error): if the instance can't reach the KOI API, the verdict still resolves from the alert's own fields.
+
 ## External prerequisites (referenced by name, not shipped in the pack)
 
 | Dependency | Where | Requirement |

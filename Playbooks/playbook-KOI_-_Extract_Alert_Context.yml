@@ -1,0 +1,172 @@
+id: KOI - Extract Alert Context
+version: -1
+fromversion: 6.10.0
+name: KOI - Extract Alert Context
+description: |-
+  Parses the KOI-specific context that the KOI event collector embeds in a
+  KOI alert's description as a `koi_context={...}` JSON blob, promoting the
+  parsing-rule field vocabulary (item_id, marketplace, alert_type, risk_level,
+  device_id, alert_hostname, item_type, mcp_*, finding_*) into the KoiContext
+  context object for downstream triage.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: koictx00-0000-4000-8000-000000000000
+    type: start
+    task:
+      id: koictx00-0000-4000-8000-000000000000
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      type: start
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "1":
+    id: "1"
+    taskid: koictx00-0000-4000-8000-000000000001
+    type: regular
+    task:
+      id: koictx00-0000-4000-8000-000000000001
+      version: -1
+      name: Extract and parse koi_context
+      description: Regex-extracts the JSON that follows "koi_context=" in the alert description, coerces it to a scalar string, and parses it into the KoiContext object.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiContext
+      value:
+        complex:
+          root: inputs.alert_description
+          transformers:
+          - operator: RegexExtractAll
+            args:
+              error_if_no_match: {}
+              regex:
+                value:
+                  simple: koi_context=(\{.*\})
+              groups:
+                value:
+                  simple: "1"
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ""
+          - operator: ParseJSON
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - "3"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 200
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: koictx00-0000-4000-8000-000000000003
+    type: title
+    task:
+      id: koictx00-0000-4000-8000-000000000003
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ""
+      type: title
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 500
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 530,
+        "width": 380,
+        "x": 450,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: alert_description
+  value:
+    simple: ${incident.details}
+  required: false
+  description: The KOI alert description containing the embedded koi_context JSON. Defaults to the current alert's description.
+  playbookInputQuery: null
+outputs:
+- contextPath: KoiContext
+  description: The parsed KOI alert context object.
+  type: unknown
+- contextPath: KoiContext.item_id
+  description: The flagged item's ID (extension/package/MCP identifier).
+  type: string
+- contextPath: KoiContext.marketplace
+  description: The item's marketplace (chrome_web_store, npm, vscode, docker, ...).
+  type: string
+- contextPath: KoiContext.alert_type
+  description: The KOI finding/alert type.
+  type: string
+- contextPath: KoiContext.risk_level
+  description: KOI's own risk level for the alert.
+  type: string
+- contextPath: KoiContext.item_type
+  description: extension | code_package | mcp_server.
+  type: string
+- contextPath: KoiContext.device_id
+  description: The affected device ID.
+  type: string
+- contextPath: KoiContext.alert_hostname
+  description: The affected device hostname.
+  type: string
+tags:
+- koi
+quiet: false
