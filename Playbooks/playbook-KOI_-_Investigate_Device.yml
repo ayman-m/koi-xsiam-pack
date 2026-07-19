@@ -1,0 +1,396 @@
+id: KOI - Investigate Device
+version: -1
+fromversion: 6.10.0
+name: KOI - Investigate Device
+description: Device-centric KOI investigation. Given a device, lists everything installed (koi-device-inventory-get), flags the items at/above the configured risk level, pulls host remediations, and posts a device posture summary + a risky-items table. Reusable from alert triage (pass KoiContext.device_id / alert_hostname) or standalone. Best-effort.
+starttaskid: '0'
+tasks:
+  '0':
+    id: '0'
+    taskid: koidev00-0000-4000-8000-000000000000
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: start
+    task:
+      id: koidev00-0000-4000-8000-000000000000
+      version: -1
+      name: ''
+      iscommand: false
+      brand: ''
+      type: start
+    nexttasks:
+      '#none#':
+      - '1'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 220}}'
+  '1':
+    id: '1'
+    taskid: koidev00-0000-4000-8000-000000000001
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000001
+      version: -1
+      name: Get device inventory
+      description: All items installed on the device (item, version, risk, path, activation).
+      iscommand: true
+      brand: ''
+      script: '|||koi-device-inventory-get'
+      type: regular
+    scriptarguments:
+      device_id:
+        simple: ${inputs.device_id}
+      limit:
+        simple: '500'
+      using: &id001
+        simple: ${inputs.instance_name}
+    nexttasks:
+      '#error#':
+      - '2'
+      '#none#':
+      - '2'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 390}}'
+  '2':
+    id: '2'
+    taskid: koidev00-0000-4000-8000-000000000002
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000002
+      version: -1
+      name: Device remediations
+      description: Remediations recorded for this host (best-effort; needs hostname).
+      iscommand: true
+      brand: ''
+      script: '|||koi-remediations-list'
+      type: regular
+    scriptarguments:
+      hostname:
+        simple: ${inputs.hostname}
+      limit:
+        simple: '100'
+      using: *id001
+    nexttasks:
+      '#error#':
+      - '3'
+      '#none#':
+      - '3'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 560}}'
+  '3':
+    id: '3'
+    taskid: koidev00-0000-4000-8000-000000000003
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000003
+      version: -1
+      name: Set total_items
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiDeviceInv.total_items
+      value:
+        complex:
+          root: Koi.DeviceInventory
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '4'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 730}}'
+  '4':
+    id: '4'
+    taskid: koidev00-0000-4000-8000-000000000004
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000004
+      version: -1
+      name: Set risky_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiDeviceInv.risky_count
+      value:
+        complex:
+          root: Koi.DeviceInventory
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.DeviceInventory.risk_level
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: inputs.risk_levels
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '5'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 900}}'
+  '5':
+    id: '5'
+    taskid: koidev00-0000-4000-8000-000000000005
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000005
+      version: -1
+      name: Set remediation_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiDeviceInv.remediation_count
+      value:
+        complex:
+          root: Koi.Remediation
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '6'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1070}}'
+  '6':
+    id: '6'
+    taskid: koidev00-0000-4000-8000-000000000006
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000006
+      version: -1
+      name: Set summary
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiDeviceInv.summary
+      value:
+        simple: '### KOI Device Investigation — ${inputs.hostname} (${inputs.device_id})
+
+          | Field | Value |
+
+          |---|---|
+
+          | Items installed | ${KoiDeviceInv.total_items} |
+
+          | Risky items (${inputs.risk_levels}) | ${KoiDeviceInv.risky_count} |
+
+          | Remediations on host | ${KoiDeviceInv.remediation_count} |
+
+          '
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '7'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1240}}'
+  '7':
+    id: '7'
+    taskid: koidev00-0000-4000-8000-000000000007
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000007
+      version: -1
+      name: Post device summary
+      description: Prints to the war room.
+      iscommand: false
+      brand: ''
+      script: Print
+      type: regular
+    scriptarguments:
+      value:
+        simple: ${KoiDeviceInv.summary}
+    nexttasks:
+      '#none#':
+      - '8'
+    continueonerror: true
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1410}}'
+  '8':
+    id: '8'
+    taskid: koidev00-0000-4000-8000-000000000008
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koidev00-0000-4000-8000-000000000008
+      version: -1
+      name: Post risky items table
+      description: Prints to the war room.
+      iscommand: false
+      brand: ''
+      script: Print
+      type: regular
+    scriptarguments:
+      value:
+        complex:
+          root: Koi.DeviceInventory
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.DeviceInventory.risk_level
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: inputs.risk_levels
+          transformers:
+          - operator: JsonToTable
+    nexttasks:
+      '#none#':
+      - '9'
+    continueonerror: true
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1580}}'
+  '9':
+    id: '9'
+    taskid: koidev00-0000-4000-8000-000000000009
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: title
+    task:
+      id: koidev00-0000-4000-8000-000000000009
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ''
+      type: title
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1750}}'
+view: '{"linkLabelsPosition": {}, "paper": {"dimensions": {"height": 1870, "width": 600, "x": 450, "y": 50}}}'
+inputs:
+- key: device_id
+  value: {}
+  required: true
+  description: The KOI device ID.
+  playbookInputQuery: null
+- key: hostname
+  value: {}
+  required: false
+  description: The device hostname (for remediation lookup + display).
+  playbookInputQuery: null
+- key: risk_levels
+  value:
+    simple: high,critical
+  required: false
+  description: Comma-separated risk levels to flag.
+  playbookInputQuery: null
+- key: instance_name
+  value:
+    simple: KOI_PAET
+  required: false
+  description: The KOI integration instance.
+  playbookInputQuery: null
+outputs:
+- contextPath: KoiDeviceInv
+  description: Device investigation summary object.
+  type: unknown
+- contextPath: Koi.DeviceInventory
+  description: All inventory items on the device.
+  type: unknown
+tags:
+- koi
+quiet: false

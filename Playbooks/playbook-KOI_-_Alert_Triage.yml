@@ -2,41 +2,41 @@ id: KOI - Alert Triage
 version: -1
 fromversion: 6.10.0
 name: KOI - Alert Triage
-description: |-
-  Triages a KOI alert end to end: extracts the embedded KOI context, enriches
+description: 'Triages a KOI alert end to end: extracts the embedded KOI context, enriches
+
   the flagged item against the KOI catalog (koi-koidex-risk-report), computes a
+
   verdict (Benign / Suspicious / Malicious) from the KOI alert type and the
+
   independent catalog risk level, posts a triage summary, and routes — auto-
+
   closing clearly-benign alerts and escalating the rest for analyst review.
 
+
   Designed to run as the attached playbook on KOI alerts ingested into Cortex
+
   XSIAM (source koi). Reads the koi_context JSON the collector embeds in the
-  alert description.
-starttaskid: "0"
+
+  alert description.'
+starttaskid: '0'
 tasks:
-  "0":
-    id: "0"
+  '0':
+    id: '0'
     taskid: koitri00-0000-4000-8000-000000000000
     type: start
     task:
       id: koitri00-0000-4000-8000-000000000000
       version: -1
-      name: ""
+      name: ''
       iscommand: false
-      brand: ""
+      brand: ''
       type: start
     nexttasks:
       '#none#':
-      - "1"
+      - '1'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 50
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 50\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -44,8 +44,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "1":
-    id: "1"
+  '1':
+    id: '1'
     taskid: koitri00-0000-4000-8000-000000000001
     type: playbook
     task:
@@ -55,23 +55,17 @@ tasks:
       description: Parses the koi_context JSON from the alert description.
       playbookId: KOI - Extract Alert Context
       iscommand: false
-      brand: ""
+      brand: ''
       type: playbook
     scriptarguments:
       alert_description:
         simple: ${incident.details}
     nexttasks:
       '#none#':
-      - "2"
+      - '2'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 200
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 200\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -79,8 +73,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "2":
-    id: "2"
+  '2':
+    id: '2'
     taskid: koitri00-0000-4000-8000-000000000002
     type: condition
     task:
@@ -89,10 +83,10 @@ tasks:
       name: Is a catalog item identifiable?
       description: Only items with an id and marketplace can be enriched against the KOI catalog.
       iscommand: false
-      brand: ""
+      brand: ''
       type: condition
     conditions:
-    - label: "yes"
+    - label: 'yes'
       condition:
       - - left:
             iscontext: true
@@ -110,18 +104,12 @@ tasks:
             value: {}
     nexttasks:
       '#default#':
-      - "4"
-      "yes":
-      - "14"
+      - '4'
+      'yes':
+      - '14'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 350
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 350\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -129,8 +117,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "14":
-    id: "14"
+  '14':
+    id: '14'
     taskid: koitri00-0000-4000-8000-000000000014
     type: playbook
     task:
@@ -140,7 +128,7 @@ tasks:
       description: Runs KOI - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing), exposed endpoints/users, governance state, and remediation/approval history, and posts an investigation summary to the war room.
       playbookId: KOI - Investigate Item
       iscommand: false
-      brand: ""
+      brand: ''
       type: playbook
     scriptarguments:
       item_id:
@@ -151,16 +139,10 @@ tasks:
         simple: ${KoiContext.version}
     nexttasks:
       '#none#':
-      - "3"
+      - '15'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 720,
-          "y": 350
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 720,\n    \"y\": 350\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -168,8 +150,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "3":
-    id: "3"
+  '3':
+    id: '3'
     taskid: koitri00-0000-4000-8000-000000000003
     type: regular
     task:
@@ -178,7 +160,7 @@ tasks:
       name: Enrich with KOI catalog risk report
       description: Retrieves the risk and compliance report for the flagged item from the KOI catalog.
       iscommand: true
-      brand: ""
+      brand: ''
       script: '|||koi-koidex-risk-report'
       type: regular
     scriptarguments:
@@ -191,7 +173,7 @@ tasks:
             args:
               separator:
                 value:
-                  simple: ""
+                  simple: ''
       marketplace:
         complex:
           root: KoiContext
@@ -201,24 +183,18 @@ tasks:
             args:
               separator:
                 value:
-                  simple: ""
+                  simple: ''
       using:
         simple: KOI_PAET
     nexttasks:
       '#error#':
-      - "4"
+      - '4'
       '#none#':
-      - "4"
+      - '4'
     separatecontext: false
     continueonerror: true
     continueonerrortype: errorPath
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 500
-        }
-      }
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 500\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -226,8 +202,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "4":
-    id: "4"
+  '4':
+    id: '4'
     taskid: koitri00-0000-4000-8000-000000000004
     type: condition
     task:
@@ -236,7 +212,7 @@ tasks:
       name: Determine verdict
       description: Classifies the alert from the KOI alert type and the catalog risk level.
       iscommand: false
-      brand: ""
+      brand: ''
       type: condition
     conditions:
     - label: malicious
@@ -317,20 +293,14 @@ tasks:
               simple: Low
     nexttasks:
       '#default#':
-      - "7"
+      - '7'
       malicious:
-      - "5"
+      - '5'
       benign:
-      - "6"
+      - '6'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 680
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 680\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -338,8 +308,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "5":
-    id: "5"
+  '5':
+    id: '5'
     taskid: koitri00-0000-4000-8000-000000000005
     type: regular
     task:
@@ -348,7 +318,7 @@ tasks:
       name: Set verdict - Malicious
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -357,19 +327,13 @@ tasks:
       value:
         simple: Malicious
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 100,
-          "y": 860
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 100,\n    \"y\": 860\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -377,8 +341,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "6":
-    id: "6"
+  '6':
+    id: '6'
     taskid: koitri00-0000-4000-8000-000000000006
     type: regular
     task:
@@ -387,7 +351,7 @@ tasks:
       name: Set verdict - Benign
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -396,19 +360,13 @@ tasks:
       value:
         simple: Benign
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 860
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 860\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -416,8 +374,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "7":
-    id: "7"
+  '7':
+    id: '7'
     taskid: koitri00-0000-4000-8000-000000000007
     type: regular
     task:
@@ -426,7 +384,7 @@ tasks:
       name: Set verdict - Suspicious
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -435,19 +393,13 @@ tasks:
       value:
         simple: Suspicious
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 800,
-          "y": 860
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 800,\n    \"y\": 860\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -455,8 +407,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "8":
-    id: "8"
+  '8':
+    id: '8'
     taskid: koitri00-0000-4000-8000-000000000008
     type: regular
     task:
@@ -465,40 +417,44 @@ tasks:
       name: Build triage summary
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
       key:
         simple: Koi.Triage.summary
       value:
-        simple: |-
-          ## KOI Alert Triage — ${Koi.Triage.verdict}
+        simple: '## KOI Alert Triage — ${Koi.Triage.verdict}
+
           | Field | Value |
+
           |---|---|
+
           | Verdict | **${Koi.Triage.verdict}** |
+
           | Alert type | ${KoiContext.alert_type} |
+
           | KOI risk level | ${KoiContext.risk_level} |
+
           | Item | ${KoiContext.item_id} (${KoiContext.marketplace}) |
+
           | Item type | ${KoiContext.item_type} |
+
           | Catalog risk level | ${Koi.KoidexRiskReport.risk_level} |
+
           | Catalog risk score | ${Koi.KoidexRiskReport.risk} |
+
           | Device | ${KoiContext.alert_hostname} (${KoiContext.device_id}) |
-          | Last user | ${KoiContext.device_last_user} |
+
+          | Last user | ${KoiContext.device_last_user} |'
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "9"
+      - '9'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1030
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1030\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -506,8 +462,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "9":
-    id: "9"
+  '9':
+    id: '9'
     taskid: koitri00-0000-4000-8000-000000000009
     type: regular
     task:
@@ -516,7 +472,7 @@ tasks:
       name: Post triage summary
       description: Prints the triage summary to the war room.
       iscommand: false
-      brand: ""
+      brand: ''
       script: Print
       type: regular
     scriptarguments:
@@ -524,17 +480,11 @@ tasks:
         simple: ${Koi.Triage.summary}
     nexttasks:
       '#none#':
-      - "10"
+      - '10'
     separatecontext: false
     continueonerror: true
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1200
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1200\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -542,8 +492,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "10":
-    id: "10"
+  '10':
+    id: '10'
     taskid: koitri00-0000-4000-8000-00000000000a
     type: condition
     task:
@@ -552,7 +502,7 @@ tasks:
       name: Route on verdict
       description: Benign alerts are auto-closed; malicious alerts are escalated; suspicious alerts stay open for review.
       iscommand: false
-      brand: ""
+      brand: ''
       type: condition
     conditions:
     - label: benign
@@ -577,20 +527,14 @@ tasks:
               simple: Malicious
     nexttasks:
       '#default#':
-      - "13"
+      - '13'
       benign:
-      - "11"
+      - '11'
       malicious:
-      - "12"
+      - '12'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1370
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1370\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -598,8 +542,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "11":
-    id: "11"
+  '11':
+    id: '11'
     taskid: koitri00-0000-4000-8000-00000000000b
     type: regular
     task:
@@ -618,17 +562,11 @@ tasks:
         simple: 'KOI triage: Benign — ${KoiContext.alert_type} for ${KoiContext.item_id} with a low catalog risk level. Auto-closed.'
     nexttasks:
       '#none#':
-      - "13"
+      - '13'
     separatecontext: false
     continueonerror: true
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 200,
-          "y": 1550
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 200,\n    \"y\": 1550\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -636,8 +574,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "12":
-    id: "12"
+  '12':
+    id: '12'
     taskid: koitri00-0000-4000-8000-00000000000c
     type: regular
     task:
@@ -646,25 +584,19 @@ tasks:
       name: Escalate - raise severity
       description: Raises the alert severity for analyst attention.
       iscommand: true
-      brand: ""
+      brand: ''
       script: '|||setAlert'
       type: regular
     scriptarguments:
       severity:
-        simple: "3"
+        simple: '3'
     nexttasks:
       '#none#':
-      - "13"
+      - '13'
     separatecontext: false
     continueonerror: true
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 550,
-          "y": 1550
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 550,\n    \"y\": 1550\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -672,8 +604,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "13":
-    id: "13"
+  '13':
+    id: '13'
     taskid: koitri00-0000-4000-8000-00000000000d
     type: title
     task:
@@ -681,17 +613,11 @@ tasks:
       version: -1
       name: Done
       iscommand: false
-      brand: ""
+      brand: ''
       type: title
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1730
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1730\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -699,18 +625,75 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-view: |-
-  {
-    "linkLabelsPosition": {},
-    "paper": {
-      "dimensions": {
-        "height": 1760,
-        "width": 1080,
-        "x": 100,
-        "y": 50
-      }
-    }
-  }
+  '15':
+    id: '15'
+    taskid: koitri00-0000-4000-8000-000000000015
+    type: condition
+    task:
+      id: koitri00-0000-4000-8000-000000000015
+      version: -1
+      name: Is a device identifiable?
+      description: Only run the device investigation when the alert carries a device id.
+      iscommand: false
+      brand: ''
+      type: condition
+    conditions:
+    - label: 'yes'
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: KoiContext.device_id
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '3'
+      'yes':
+      - '16'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 720, "y": 520}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '16':
+    id: '16'
+    taskid: koitri00-0000-4000-8000-000000000016
+    type: playbook
+    task:
+      id: koitri00-0000-4000-8000-000000000016
+      version: -1
+      name: Full KOI device investigation
+      description: Runs KOI - Investigate Device on the alert's device to surface all risky items installed on that host.
+      playbookId: KOI - Investigate Device
+      iscommand: false
+      brand: ''
+      type: playbook
+    scriptarguments:
+      device_id:
+        simple: ${KoiContext.device_id}
+      hostname:
+        simple: ${KoiContext.alert_hostname}
+    nexttasks:
+      '#none#':
+      - '3'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 720, "y": 690}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: "{\n  \"linkLabelsPosition\": {},\n  \"paper\": {\n    \"dimensions\": {\n      \"height\": 1760,\n      \"width\": 1080,\n      \"x\": 100,\n      \"y\": 50\n    }\n  }\n}"
 inputs: []
 outputs:
 - contextPath: Koi.Triage.verdict
