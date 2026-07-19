@@ -104,7 +104,7 @@ Built on the read-only + governance commands, these extend triage into response 
 | Playbook | Type | What it does |
 |---|---|---|
 | `KOI - Enrich Item` | Sub | Given an item + marketplace, gathers catalog risk (`koi-koidex-risk-report`) and endpoint exposure (`koi-inventory-item-endpoints-list`) into a `KoiEnrichment` object. Reusable by triage, block, and hunts. |
-| `KOI - Block and Remediate` | Main | Enriches an item, presents an **analyst approval gate** (showing risk + endpoint exposure), and only on approval adds it to the org blocklist (`koi-blocklist-items-add`). Safe by default — the write never fires without approval unless `auto_block=true`. Chains naturally from a Malicious triage verdict. |
+| `KOI - Block and Remediate` | Main | Runs the **full investigation** (`KOI - Investigate Item`), short-circuits if the item is **already on the org blocklist**, then presents an **analyst approval gate** showing the complete picture — catalog risk + AI summary, org risk / publisher / signing, installs, endpoints & affected users, remediation and prior-approval history — and only on approval adds it to the blocklist (`koi-blocklist-items-add`). Safe by default: the write never fires without approval unless `auto_block=true`. Analyst-invoked (supply `item_id` / `marketplace`), or callable as a sub-playbook from a Malicious triage verdict. |
 | `KOI - MCP Server Audit` | Scheduled | Enumerates MCP-server inventory, flags those at/above a risk threshold, and reports them. Attach to a time-triggered Job for continuous agentic-AI hygiene. |
 
 > **Connectivity requirement.** These playbooks call the KOI integration commands

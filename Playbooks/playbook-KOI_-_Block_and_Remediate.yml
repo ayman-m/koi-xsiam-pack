@@ -2,40 +2,39 @@ id: KOI - Block and Remediate
 version: -1
 fromversion: 6.10.0
 name: KOI - Block and Remediate
-description: |-
-  Response playbook for a flagged KOI item. Enriches the item (KOI - Enrich Item),
+description: 'Response playbook for a flagged KOI item. Enriches the item (KOI - Enrich Item),
+
   presents an analyst approval gate showing the catalog risk and endpoint exposure,
+
   and — only on approval — adds the item to the organization-wide KOI blocklist
+
   (koi-blocklist-items-add). Safe by default: the blocklist write never fires
+
   without explicit approval.
 
+
   Typically chained from KOI - Alert Triage on a Malicious verdict, or run
-  manually against an item_id / marketplace.
-starttaskid: "0"
+
+  manually against an item_id / marketplace.'
+starttaskid: '0'
 tasks:
-  "0":
-    id: "0"
+  '0':
+    id: '0'
     taskid: koiblk00-0000-4000-8000-000000000000
     type: start
     task:
       id: koiblk00-0000-4000-8000-000000000000
       version: -1
-      name: ""
+      name: ''
       iscommand: false
-      brand: ""
+      brand: ''
       type: start
     nexttasks:
       '#none#':
-      - "1"
+      - '1'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 50
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 50\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -43,18 +42,18 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "1":
-    id: "1"
+  '1':
+    id: '1'
     taskid: koiblk00-0000-4000-8000-000000000001
     type: playbook
     task:
       id: koiblk00-0000-4000-8000-000000000001
       version: -1
-      name: Enrich the item
-      description: Gathers catalog risk and endpoint exposure for the item.
-      playbookId: KOI - Enrich Item
+      name: Investigate the item
+      description: 'Runs the full KOI investigation: catalog risk + AI summary, org exposure (installs/signing/endpoints/users), governance state, and remediation & approval history.'
+      playbookId: KOI - Investigate Item
       iscommand: false
-      brand: ""
+      brand: ''
       type: playbook
     scriptarguments:
       item_id:
@@ -67,16 +66,10 @@ tasks:
         simple: ${inputs.instance_name}
     nexttasks:
       '#none#':
-      - "2"
+      - '10'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 200
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 200\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -84,8 +77,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "2":
-    id: "2"
+  '2':
+    id: '2'
     taskid: koiblk00-0000-4000-8000-000000000002
     type: condition
     task:
@@ -94,7 +87,7 @@ tasks:
       name: Is approval required?
       description: When auto_block is true the block proceeds without an approval gate; otherwise an analyst must approve.
       iscommand: false
-      brand: ""
+      brand: ''
       type: condition
     conditions:
     - label: auto
@@ -106,21 +99,15 @@ tasks:
           operator: isEqualString
           right:
             value:
-              simple: "true"
+              simple: 'true'
     nexttasks:
       '#default#':
-      - "3"
+      - '3'
       auto:
-      - "5"
+      - '5'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 370
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 370\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -128,37 +115,42 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "3":
-    id: "3"
+  '3':
+    id: '3'
     taskid: koiblk00-0000-4000-8000-000000000003
     type: condition
     task:
       id: koiblk00-0000-4000-8000-000000000003
       version: -1
       name: Approve blocking this item?
-      description: |-
-        Analyst decision. Review the enrichment before approving an
-        organization-wide block.
+      description: 'Analyst decision. Review the full KOI investigation before approving an organization-wide block.
+
         Item: ${inputs.item_id} (${inputs.marketplace})
-        Catalog risk: ${KoiEnrichment.risk_level} (score ${KoiEnrichment.risk_score})
-        Installed on ${KoiEnrichment.endpoint_count} endpoint(s): ${KoiEnrichment.hostnames}
+
+        Catalog risk: ${KoiInvestigation.catalog_risk_level} (score ${KoiInvestigation.catalog_risk_score})
+
+        Org risk: ${KoiInvestigation.org_risk_level} | Publisher: ${KoiInvestigation.publisher} | Signed: ${KoiInvestigation.is_signed}
+
+        Org installs: ${KoiInvestigation.installs_count} | Endpoints affected: ${KoiInvestigation.endpoint_count}
+
+        Hostnames: ${KoiInvestigation.hostnames}
+
+        Affected users: ${KoiInvestigation.affected_users}
+
+        Remediations: ${KoiInvestigation.remediation_count} | Prior approvals: ${KoiInvestigation.approval_count}
+
+        AI risk summary: ${KoiInvestigation.ai_summary}'
       iscommand: false
-      brand: ""
+      brand: ''
       type: condition
     nexttasks:
       Approve:
-      - "5"
+      - '5'
       Reject:
-      - "4"
+      - '4'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 250,
-          "y": 540
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 250,\n    \"y\": 540\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -166,8 +158,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "4":
-    id: "4"
+  '4':
+    id: '4'
     taskid: koiblk00-0000-4000-8000-000000000004
     type: regular
     task:
@@ -176,7 +168,7 @@ tasks:
       name: Record block rejected
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -185,19 +177,13 @@ tasks:
       value:
         simple: Rejected
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 60,
-          "y": 710
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 60,\n    \"y\": 710\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -205,8 +191,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "5":
-    id: "5"
+  '5':
+    id: '5'
     taskid: koiblk00-0000-4000-8000-000000000005
     type: regular
     task:
@@ -215,7 +201,7 @@ tasks:
       name: Add item to KOI blocklist
       description: Adds the item to the organization-wide KOI blocklist.
       iscommand: true
-      brand: ""
+      brand: ''
       script: '|||koi-blocklist-items-add'
       type: regular
     scriptarguments:
@@ -231,19 +217,13 @@ tasks:
         simple: ${inputs.instance_name}
     nexttasks:
       '#error#':
-      - "7"
+      - '7'
       '#none#':
-      - "6"
+      - '6'
     separatecontext: false
     continueonerror: true
     continueonerrortype: errorPath
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 710
-        }
-      }
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 710\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -251,8 +231,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "6":
-    id: "6"
+  '6':
+    id: '6'
     taskid: koiblk00-0000-4000-8000-000000000006
     type: regular
     task:
@@ -261,7 +241,7 @@ tasks:
       name: Record block succeeded
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -270,19 +250,13 @@ tasks:
       value:
         simple: Blocked
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 880
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 880\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -290,8 +264,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "7":
-    id: "7"
+  '7':
+    id: '7'
     taskid: koiblk00-0000-4000-8000-000000000007
     type: regular
     task:
@@ -300,7 +274,7 @@ tasks:
       name: Record block failed
       description: Set a value in context under the key you entered.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -309,19 +283,13 @@ tasks:
       value:
         simple: Failed
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "8"
+      - '8'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 700,
-          "y": 880
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 700,\n    \"y\": 880\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -329,8 +297,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "8":
-    id: "8"
+  '8':
+    id: '8'
     taskid: koiblk00-0000-4000-8000-000000000008
     type: regular
     task:
@@ -339,33 +307,37 @@ tasks:
       name: Post response summary
       description: Prints the block outcome to the war room.
       iscommand: false
-      brand: ""
+      brand: ''
       script: Print
       type: regular
     scriptarguments:
       value:
-        simple: |-
-          ## KOI Block & Remediate — ${KoiBlock.status}
+        simple: '## KOI Block & Remediate — ${KoiBlock.status}
+
           | Field | Value |
+
           |---|---|
+
           | Item | ${inputs.item_id} (${inputs.marketplace}) |
+
           | Outcome | **${KoiBlock.status}** |
-          | Catalog risk | ${KoiEnrichment.risk_level} (score ${KoiEnrichment.risk_score}) |
-          | Endpoints affected | ${KoiEnrichment.endpoint_count} |
-          | Reason | ${inputs.reason} |
+
+          | Catalog risk | ${KoiInvestigation.catalog_risk_level} (score ${KoiInvestigation.catalog_risk_score}) |
+
+          | Org risk / publisher | ${KoiInvestigation.org_risk_level} / ${KoiInvestigation.publisher} |
+
+          | Endpoints affected | ${KoiInvestigation.endpoint_count} |
+
+          | Hostnames | ${KoiInvestigation.hostnames} |
+
+          | Reason | ${inputs.reason} |'
     nexttasks:
       '#none#':
-      - "9"
+      - '9'
     separatecontext: false
     continueonerror: true
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1050
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1050\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -373,8 +345,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "9":
-    id: "9"
+  '9':
+    id: '9'
     taskid: koiblk00-0000-4000-8000-000000000009
     type: title
     task:
@@ -382,17 +354,11 @@ tasks:
       version: -1
       name: Done
       iscommand: false
-      brand: ""
+      brand: ''
       type: title
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 1220
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 1220\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -400,18 +366,89 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-view: |-
-  {
-    "linkLabelsPosition": {},
-    "paper": {
-      "dimensions": {
-        "height": 1250,
-        "width": 1030,
-        "x": 60,
-        "y": 50
-      }
-    }
-  }
+  '10':
+    id: '10'
+    taskid: koiblk00-0000-4000-8000-000000000010
+    type: condition
+    task:
+      id: koiblk00-0000-4000-8000-000000000010
+      version: -1
+      name: Already on the KOI blocklist?
+      description: The investigation already pulled the org blocklist - skip a redundant block if this item is on it.
+      iscommand: false
+      brand: ''
+      type: condition
+    conditions:
+    - label: 'yes'
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              complex:
+                root: Koi.Blocklist
+                filters:
+                - - left:
+                      iscontext: true
+                      value:
+                        simple: Koi.Blocklist.item_id
+                    operator: inList
+                    right:
+                      iscontext: true
+                      value:
+                        simple: inputs.item_id
+                accessor: item_id
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '2'
+      'yes':
+      - '11'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 720, "y": 200}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '11':
+    id: '11'
+    taskid: koiblk00-0000-4000-8000-000000000011
+    type: regular
+    task:
+      id: koiblk00-0000-4000-8000-000000000011
+      version: -1
+      name: Record already blocked
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiBlock.status
+      value:
+        simple: Already blocked
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '8'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 950, "y": 340}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: "{\n  \"linkLabelsPosition\": {},\n  \"paper\": {\n    \"dimensions\": {\n      \"height\": 1250,\n      \"width\": 1030,\n      \"x\": 60,\n      \"y\": 50\n    }\n  }\n}"
 inputs:
 - key: item_id
   value: {}
@@ -441,7 +478,7 @@ inputs:
   playbookInputQuery: null
 - key: auto_block
   value:
-    simple: "false"
+    simple: 'false'
   required: false
   description: Set to true to skip the analyst approval gate and block automatically. Default false (approval required).
   playbookInputQuery: null
