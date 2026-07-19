@@ -2,37 +2,34 @@ id: KOI - Extract Alert Context
 version: -1
 fromversion: 6.10.0
 name: KOI - Extract Alert Context
-description: |-
-  Parses the KOI-specific context that the KOI event collector embeds in a
-  KOI alert's description as a `koi_context={...}` JSON blob, promoting the
+description: 'Parses the KOI-specific context that the KOI event collector embeds in a
+
+  KOI alert''s description as a `koi_context={...}` JSON blob, promoting the
+
   parsing-rule field vocabulary (item_id, marketplace, alert_type, risk_level,
+
   device_id, alert_hostname, item_type, mcp_*, finding_*) into the KoiContext
-  context object for downstream triage.
-starttaskid: "0"
+
+  context object for downstream triage.'
+starttaskid: '0'
 tasks:
-  "0":
-    id: "0"
+  '0':
+    id: '0'
     taskid: koictx00-0000-4000-8000-000000000000
     type: start
     task:
       id: koictx00-0000-4000-8000-000000000000
       version: -1
-      name: ""
+      name: ''
       iscommand: false
-      brand: ""
+      brand: ''
       type: start
     nexttasks:
       '#none#':
-      - "1"
+      - '1'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 50
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 50\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -40,8 +37,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "1":
-    id: "1"
+  '1':
+    id: '1'
     taskid: koictx00-0000-4000-8000-000000000001
     type: regular
     task:
@@ -50,7 +47,7 @@ tasks:
       name: Extract and parse koi_context
       description: Regex-extracts the JSON that follows "koi_context=" in the alert description, coerces it to a scalar string, and parses it into the KoiContext object.
       iscommand: false
-      brand: ""
+      brand: ''
       script: SetAndHandleEmpty
       type: regular
     scriptarguments:
@@ -68,27 +65,21 @@ tasks:
                   simple: koi_context=(\{.*\})
               groups:
                 value:
-                  simple: "1"
+                  simple: '1'
           - operator: join
             args:
               separator:
                 value:
-                  simple: ""
+                  simple: ''
           - operator: ParseJSON
       append:
-        simple: "false"
+        simple: 'false'
     nexttasks:
       '#none#':
-      - "3"
+      - '4'
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 200
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 200\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -96,8 +87,8 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-  "3":
-    id: "3"
+  '3':
+    id: '3'
     taskid: koictx00-0000-4000-8000-000000000003
     type: title
     task:
@@ -105,17 +96,11 @@ tasks:
       version: -1
       name: Done
       iscommand: false
-      brand: ""
+      brand: ''
       type: title
     separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 450,
-          "y": 500
-        }
-      }
+    continueonerrortype: ''
+    view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 500\n  }\n}"
     note: false
     timertriggers: []
     ignoreworker: false
@@ -123,18 +108,40 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-view: |-
-  {
-    "linkLabelsPosition": {},
-    "paper": {
-      "dimensions": {
-        "height": 530,
-        "width": 380,
-        "x": 450,
-        "y": 50
-      }
-    }
-  }
+  '4':
+    id: '4'
+    taskid: c0110000-0000-4000-8000-000000000004
+    type: regular
+    task:
+      id: c0110000-0000-4000-8000-000000000004
+      version: -1
+      name: Collapse KoiContext to a single object
+      description: RegexExtractAll yields an array-of-one-object; collapse to the object so every KoiContext.<field> resolves as a scalar (not a 1-element array).
+      iscommand: false
+      brand: ''
+      script: Set
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiContext
+      value:
+        simple: ${KoiContext.[0]}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '3'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 370}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: "{\n  \"linkLabelsPosition\": {},\n  \"paper\": {\n    \"dimensions\": {\n      \"height\": 530,\n      \"width\": 380,\n      \"x\": 450,\n      \"y\": 50\n    }\n  }\n}"
 inputs:
 - key: alert_description
   value:

@@ -76,8 +76,9 @@ A second, independent playbook set triages KOI **alerts** ingested into Cortex X
 
 | Playbook | Role |
 |---|---|
-| `KOI - Alert Triage` | Main. Extracts context → enriches via `koi-koidex-risk-report` → computes a verdict → posts a summary → routes (auto-close / escalate / leave open). |
-| `KOI - Extract Alert Context` | Sub. Parses the `koi_context={...}` JSON the collector embeds in the alert description into the `KoiContext` object. |
+| `KOI - Alert Triage` | Main. Extracts context → runs the **full KOI investigation** (`KOI - Investigate Item`) → enriches via `koi-koidex-risk-report` → computes a verdict → posts a summary → routes (auto-close / escalate / leave open). |
+| `KOI - Extract Alert Context` | Sub. Parses the `koi_context={...}` JSON the collector embeds in the alert description into the `KoiContext` object (collapsing it to a single object so `KoiContext.<field>` resolves as a scalar, not a 1-element array). |
+| `KOI - Investigate Item` | Sub. Given an item + marketplace, gathers a **comprehensive investigation** into a `KoiInvestigation` object + war-room summary: catalog risk & AI risk summary (`koi-koidex-risk-report`), the org's inventory record (installs / signing / endpoint count / org risk), exposed endpoints & users (`koi-inventory-item-endpoints-list`, only when the installed version is known), governance state (`koi-blocklist-get`), and remediation & approval history filtered to the item. Best-effort (continue-on-error); reusable outside triage. |
 
 **Verdict logic** (keyed on KOI's own `alert_type` and `risk_level`, with the catalog risk level as a bonus signal):
 
@@ -89,7 +90,9 @@ A second, independent playbook set triages KOI **alerts** ingested into Cortex X
 
 Attach `KOI - Alert Triage` to KOI alerts (source `koi`). It reads the alert description from `${incident.details}`; if your alert generation maps the KOI payload to a different field, adjust the `alert_description` input on the extract sub-playbook.
 
-Validated on-tenant against simulated alerts: MCP/removed-from-marketplace → Malicious (escalated), new-low-risk extension → Benign (auto-closed), medium-risk dependency → Suspicious (kept open).
+Validated on-tenant end to end through an **office-egress engine** (so the KOI commands actually return data, not `403`): the triage runs `KOI - Investigate Item`, posts the investigation summary, and the verdict now reflects real catalog data — e.g. a `Vulnerable Dependency` alert on `axios` (whose KOI catalog risk is **High**) escalates to **Malicious**.
+
+> Note: `KOI - Investigate Item` runs as a sub-playbook, where XSOAR array/object DT handling differs from the parent; a few investigation-summary fields may render with array brackets (`["high"]`, `[0]`). The values are correct and the analyst-facing triage summary renders as clean scalars.
 
 > The triage playbooks call `koi-koidex-risk-report` through a configured KOI integration instance. Enrichment is best-effort (continue-on-error): if the instance can't reach the KOI API, the verdict still resolves from the alert's own fields.
 

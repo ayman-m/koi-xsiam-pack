@@ -112,13 +112,52 @@ tasks:
       '#default#':
       - "4"
       "yes":
-      - "3"
+      - "14"
     separatecontext: false
     continueonerrortype: ""
     view: |-
       {
         "position": {
           "x": 450,
+          "y": 350
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "14":
+    id: "14"
+    taskid: koitri00-0000-4000-8000-000000000014
+    type: playbook
+    task:
+      id: koitri00-0000-4000-8000-000000000014
+      version: -1
+      name: Full KOI investigation
+      description: Runs KOI - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing), exposed endpoints/users, governance state, and remediation/approval history, and posts an investigation summary to the war room.
+      playbookId: KOI - Investigate Item
+      iscommand: false
+      brand: ""
+      type: playbook
+    scriptarguments:
+      item_id:
+        simple: ${KoiContext.item_id}
+      marketplace:
+        simple: ${KoiContext.marketplace}
+      version:
+        simple: ${KoiContext.version}
+    nexttasks:
+      '#none#':
+      - "3"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 720,
           "y": 350
         }
       }
@@ -144,9 +183,25 @@ tasks:
       type: regular
     scriptarguments:
       item_id:
-        simple: ${KoiContext.item_id}
+        complex:
+          root: KoiContext
+          accessor: item_id
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ""
       marketplace:
-        simple: ${KoiContext.marketplace}
+        complex:
+          root: KoiContext
+          accessor: marketplace
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ""
       using:
         simple: KOI_PAET
     nexttasks:

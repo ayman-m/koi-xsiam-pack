@@ -1,0 +1,979 @@
+id: KOI - Investigate Item
+version: -1
+fromversion: 6.10.0
+name: KOI - Investigate Item
+description: Comprehensive, reusable investigation for a KOI catalog item. Coerces inputs to scalars, gathers catalog risk + AI summary, org inventory record (installs/signing/endpoint count/org risk), exposed endpoints & users (when the installed version is known), governance state, and remediation & approval history into a KoiInvestigation object plus a war-room summary. Best-effort (continue-on-error).
+starttaskid: '0'
+tasks:
+  '0':
+    id: '0'
+    taskid: koiinv00-0000-4000-8000-000000000000
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: start
+    task:
+      id: koiinv00-0000-4000-8000-000000000000
+      version: -1
+      name: ''
+      iscommand: false
+      brand: ''
+      type: start
+    nexttasks:
+      '#none#':
+      - '1'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 220}}'
+  '1':
+    id: '1'
+    taskid: koiinv00-0000-4000-8000-000000000001
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000001
+      version: -1
+      name: Coerce item_id to scalar
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: Inv.item_id
+      value:
+        complex:
+          root: inputs.item_id
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ''
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '2'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 390}}'
+  '2':
+    id: '2'
+    taskid: koiinv00-0000-4000-8000-000000000002
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000002
+      version: -1
+      name: Coerce marketplace to scalar
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: Inv.marketplace
+      value:
+        complex:
+          root: inputs.marketplace
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ''
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '3'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 560}}'
+  '3':
+    id: '3'
+    taskid: koiinv00-0000-4000-8000-000000000003
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000003
+      version: -1
+      name: Catalog risk report
+      description: KOI catalog risk/compliance + AI risk summary.
+      iscommand: true
+      brand: ''
+      script: '|||koi-koidex-risk-report'
+      type: regular
+    scriptarguments:
+      item_id: &id001
+        simple: ${Inv.item_id}
+      marketplace: &id002
+        simple: ${Inv.marketplace}
+      using: &id003
+        simple: ${inputs.instance_name}
+    nexttasks:
+      '#error#':
+      - '4'
+      '#none#':
+      - '4'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 730}}'
+  '4':
+    id: '4'
+    taskid: koiinv00-0000-4000-8000-000000000004
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000004
+      version: -1
+      name: Org exposure (inventory)
+      description: The org's inventory record for the item (installs, signing, endpoint count, version).
+      iscommand: true
+      brand: ''
+      script: '|||koi-inventory-list'
+      type: regular
+    scriptarguments:
+      item_id: *id001
+      marketplace: *id002
+      limit:
+        simple: '5'
+      using: *id003
+    nexttasks:
+      '#error#':
+      - '5'
+      '#none#':
+      - '5'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 900}}'
+  '5':
+    id: '5'
+    taskid: koiinv00-0000-4000-8000-000000000005
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: condition
+    task:
+      id: koiinv00-0000-4000-8000-000000000005
+      version: -1
+      name: Is the item in org inventory (version known)?
+      description: Is the item in org inventory (version known)?
+      iscommand: false
+      brand: ''
+      type: condition
+    conditions:
+    - label: 'yes'
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: Koi.Inventory.version
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '7'
+      'yes':
+      - '6'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1070}}'
+  '6':
+    id: '6'
+    taskid: koiinv00-0000-4000-8000-000000000006
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000006
+      version: -1
+      name: Endpoints with the item
+      description: Endpoints (host/user) with the item installed; uses the inventory version.
+      iscommand: true
+      brand: ''
+      script: '|||koi-inventory-item-endpoints-list'
+      type: regular
+    scriptarguments:
+      item_id: *id001
+      marketplace: *id002
+      version:
+        simple: ${Koi.Inventory.version}
+      limit:
+        simple: '200'
+      using: *id003
+    nexttasks:
+      '#error#':
+      - '7'
+      '#none#':
+      - '7'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 1240}}'
+  '7':
+    id: '7'
+    taskid: koiinv00-0000-4000-8000-000000000007
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000007
+      version: -1
+      name: 'Governance: blocklist'
+      description: Current org blocklist.
+      iscommand: true
+      brand: ''
+      script: '|||koi-blocklist-get'
+      type: regular
+    scriptarguments:
+      using: *id003
+    nexttasks:
+      '#error#':
+      - '8'
+      '#none#':
+      - '8'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 1410}}'
+  '8':
+    id: '8'
+    taskid: koiinv00-0000-4000-8000-000000000008
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000008
+      version: -1
+      name: Remediation history
+      description: Recent remediations (filtered to this item).
+      iscommand: true
+      brand: ''
+      script: '|||koi-remediations-list'
+      type: regular
+    scriptarguments:
+      limit:
+        simple: '100'
+      using: *id003
+    nexttasks:
+      '#error#':
+      - '9'
+      '#none#':
+      - '9'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 1580}}'
+  '9':
+    id: '9'
+    taskid: koiinv00-0000-4000-8000-000000000009
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000009
+      version: -1
+      name: Approval history
+      description: Recent approval requests (filtered to this item).
+      iscommand: true
+      brand: ''
+      script: '|||koi-approval-requests-list'
+      type: regular
+    scriptarguments:
+      limit:
+        simple: '100'
+      using: *id003
+    nexttasks:
+      '#error#':
+      - '10'
+      '#none#':
+      - '10'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 1750}}'
+  '10':
+    id: '10'
+    taskid: koiinv00-0000-4000-8000-000000000010
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000010
+      version: -1
+      name: Set catalog_risk_level
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.catalog_risk_level
+      value:
+        simple: ${Koi.KoidexRiskReport.risk_level}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '11'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1920}}'
+  '11':
+    id: '11'
+    taskid: koiinv00-0000-4000-8000-000000000011
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000011
+      version: -1
+      name: Set catalog_risk_score
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.catalog_risk_score
+      value:
+        simple: ${Koi.KoidexRiskReport.risk}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '12'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2090}}'
+  '12':
+    id: '12'
+    taskid: koiinv00-0000-4000-8000-000000000012
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000012
+      version: -1
+      name: Set ai_summary
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.ai_summary
+      value:
+        simple: ${Koi.KoidexRiskReport.ai_risk_summary}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '13'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2260}}'
+  '13':
+    id: '13'
+    taskid: koiinv00-0000-4000-8000-000000000013
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000013
+      version: -1
+      name: Set org_risk_level
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.org_risk_level
+      value:
+        simple: ${Koi.Inventory.risk_level}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '14'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2430}}'
+  '14':
+    id: '14'
+    taskid: koiinv00-0000-4000-8000-000000000014
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000014
+      version: -1
+      name: Set installs_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.installs_count
+      value:
+        simple: ${Koi.Inventory.installs_count}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '15'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2600}}'
+  '15':
+    id: '15'
+    taskid: koiinv00-0000-4000-8000-000000000015
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000015
+      version: -1
+      name: Set is_signed
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.is_signed
+      value:
+        simple: ${Koi.Inventory.is_signed}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '16'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2770}}'
+  '16':
+    id: '16'
+    taskid: koiinv00-0000-4000-8000-000000000016
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000016
+      version: -1
+      name: Set publisher
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.publisher
+      value:
+        simple: ${Koi.Inventory.publisher_name}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '17'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 2940}}'
+  '17':
+    id: '17'
+    taskid: koiinv00-0000-4000-8000-000000000017
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000017
+      version: -1
+      name: Set endpoint_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.endpoint_count
+      value:
+        simple: ${Koi.Inventory.endpoint_count}
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '18'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3110}}'
+  '18':
+    id: '18'
+    taskid: koiinv00-0000-4000-8000-000000000018
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000018
+      version: -1
+      name: Set hostnames
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.hostnames
+      value:
+        complex:
+          root: Koi.Inventory.Endpoint
+          accessor: hostname
+          transformers:
+          - operator: uniq
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '19'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3280}}'
+  '19':
+    id: '19'
+    taskid: koiinv00-0000-4000-8000-000000000019
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000019
+      version: -1
+      name: Set affected_users
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.affected_users
+      value:
+        complex:
+          root: Koi.Inventory.Endpoint
+          accessor: last_logged_on_user
+          transformers:
+          - operator: uniq
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '20'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3450}}'
+  '20':
+    id: '20'
+    taskid: koiinv00-0000-4000-8000-000000000020
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000020
+      version: -1
+      name: Set blocklisted_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.blocklisted_count
+      value:
+        complex:
+          root: Koi.Blocklist
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.Blocklist.item_id
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: Inv.item_id
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '21'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3620}}'
+  '21':
+    id: '21'
+    taskid: koiinv00-0000-4000-8000-000000000021
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000021
+      version: -1
+      name: Set remediation_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.remediation_count
+      value:
+        complex:
+          root: Koi.Remediation
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.Remediation.item_id
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: Inv.item_id
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '22'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3790}}'
+  '22':
+    id: '22'
+    taskid: koiinv00-0000-4000-8000-000000000022
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000022
+      version: -1
+      name: Set approval_count
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.approval_count
+      value:
+        complex:
+          root: Koi.ApprovalRequest
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.ApprovalRequest.item_id
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: Inv.item_id
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '23'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3960}}'
+  '23':
+    id: '23'
+    taskid: koiinv00-0000-4000-8000-000000000023
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000023
+      version: -1
+      name: Set summary
+      description: Set a value in context under the key you entered.
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.summary
+      value:
+        simple: '### KOI Investigation — ${Inv.item_id} (${Inv.marketplace})
+
+          | Field | Value |
+
+          |---|---|
+
+          | Catalog risk | ${Koi.KoidexRiskReport.risk_level} (${Koi.KoidexRiskReport.risk}) |
+
+          | Org risk | ${KoiInvestigation.org_risk_level} |
+
+          | Publisher / signed | ${KoiInvestigation.publisher} / ${KoiInvestigation.is_signed} |
+
+          | Org installs | ${KoiInvestigation.installs_count} |
+
+          | Endpoints affected | ${KoiInvestigation.endpoint_count} |
+
+          | Hostnames | ${KoiInvestigation.hostnames} |
+
+          | Affected users | ${KoiInvestigation.affected_users} |
+
+          | On blocklist | ${KoiInvestigation.blocklisted_count} |
+
+          | Remediations (item) | ${KoiInvestigation.remediation_count} |
+
+          | Approvals (item) | ${KoiInvestigation.approval_count} |
+
+
+          **AI risk summary:** ${KoiInvestigation.ai_summary}'
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '24'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 4130}}'
+  '24':
+    id: '24'
+    taskid: koiinv00-0000-4000-8000-000000000024
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000024
+      version: -1
+      name: Post investigation summary
+      description: Prints the investigation summary to the war room.
+      iscommand: false
+      brand: ''
+      script: Print
+      type: regular
+    scriptarguments:
+      value:
+        simple: ${KoiInvestigation.summary}
+    nexttasks:
+      '#none#':
+      - '25'
+    continueonerror: true
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 4300}}'
+  '25':
+    id: '25'
+    taskid: koiinv00-0000-4000-8000-000000000025
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: title
+    task:
+      id: koiinv00-0000-4000-8000-000000000025
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ''
+      type: title
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 4470}}'
+view: '{"linkLabelsPosition": {}, "paper": {"dimensions": {"height": 4590, "width": 600, "x": 450, "y": 50}}}'
+inputs:
+- key: item_id
+  value: {}
+  required: true
+  description: The KOI catalog item ID.
+  playbookInputQuery: null
+- key: marketplace
+  value: {}
+  required: true
+  description: The item's marketplace.
+  playbookInputQuery: null
+- key: version
+  value: {}
+  required: false
+  description: The item version (optional).
+  playbookInputQuery: null
+- key: instance_name
+  value:
+    simple: KOI_PAET
+  required: false
+  description: The KOI integration instance.
+  playbookInputQuery: null
+outputs:
+- contextPath: KoiInvestigation
+  description: The consolidated KOI investigation object.
+  type: unknown
+- contextPath: KoiInvestigation.summary
+  description: Markdown investigation summary.
+  type: string
+- contextPath: Koi.KoidexRiskReport
+  description: Full KOI catalog risk report.
+  type: unknown
+tags:
+- koi
+quiet: false
