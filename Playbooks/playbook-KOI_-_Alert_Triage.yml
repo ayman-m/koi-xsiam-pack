@@ -592,7 +592,7 @@ tasks:
         simple: '3'
     nexttasks:
       '#none#':
-      - '13'
+      - '18'
     separatecontext: false
     continueonerror: true
     continueonerrortype: ''
@@ -686,6 +686,89 @@ tasks:
     separatecontext: false
     continueonerrortype: ''
     view: '{"position": {"x": 720, "y": 690}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '18':
+    id: '18'
+    taskid: koitri00-0000-4000-8000-000000000018
+    type: condition
+    task:
+      id: koitri00-0000-4000-8000-000000000018
+      version: -1
+      name: Item blockable?
+      description: A Malicious verdict can be reached without a catalog item; only open a block gate when the item is identifiable.
+      iscommand: false
+      brand: ''
+      type: condition
+    conditions:
+    - label: 'yes'
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: KoiContext.item_id
+          operator: isNotEmpty
+          right:
+            value: {}
+        - left:
+            iscontext: true
+            value:
+              simple: KoiContext.marketplace
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '13'
+      'yes':
+      - '17'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 980, "y": 1050}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '17':
+    id: '17'
+    taskid: koitri00-0000-4000-8000-000000000017
+    type: playbook
+    task:
+      id: koitri00-0000-4000-8000-000000000017
+      version: -1
+      name: Open analyst-gated block
+      description: 'Runs KOI - Block and Remediate for the flagged item: full investigation, already-blocklisted short-circuit, then an analyst approval gate. auto_block is forced false, so the blocklist write can never fire without human approval.'
+      playbookId: KOI - Block and Remediate
+      iscommand: false
+      brand: ''
+      type: playbook
+    scriptarguments:
+      item_id:
+        simple: ${KoiContext.item_id}
+      marketplace:
+        simple: ${KoiContext.marketplace}
+      version:
+        simple: ${KoiContext.version}
+      reason:
+        simple: KOI triage verdict Malicious — ${KoiContext.alert_type} for ${KoiContext.item_id}
+      auto_block:
+        simple: 'false'
+      instance_name:
+        simple: KOI_PAET
+    nexttasks:
+      '#none#':
+      - '13'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 980, "y": 1220}}'
     note: false
     timertriggers: []
     ignoreworker: false

@@ -85,7 +85,7 @@ A second, independent playbook set triages KOI **alerts** ingested into Cortex X
 
 | Verdict | Condition | Action |
 |---|---|---|
-| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity, keep open |
+| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity, then — when the item is identifiable — open an **analyst-gated block** via `KOI - Block and Remediate` (`auto_block` forced `false`, so the blocklist write never fires without human approval) |
 | **Benign** | `alert_type` = New Item **and** `risk_level` = Low | Auto-close (Resolved) |
 | **Suspicious** | anything else (safe default) | Keep open for analyst |
 
