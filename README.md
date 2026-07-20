@@ -138,19 +138,26 @@ To rebuild the zip from source: place this pack at `Packs/Koi/` inside a content
 
 The full customer guide — install, configure, all commands, capabilities, the triage/investigation playbooks, validation and troubleshooting:
 
-| Format | File |
-|---|---|
-| Word | [`docs/KOI_Integration_Customer_Guide_v1.3.0.docx`](docs/KOI_Integration_Customer_Guide_v1.3.0.docx) |
-| PDF | [`docs/KOI_Integration_Customer_Guide_v1.3.0.pdf`](docs/KOI_Integration_Customer_Guide_v1.3.0.pdf) |
+| Document | What it is | Formats |
+|---|---|---|
+| **Customer guide** | Install, configure, all 26 commands, capabilities, the playbooks, validation and troubleshooting | [Word](docs/KOI_Integration_Customer_Guide_v1.3.0.docx) · [PDF](docs/KOI_Integration_Customer_Guide_v1.3.0.pdf) |
+| **Overview deck** | 12-slide introduction to the pack, for briefings and demos | [PPTX](docs/KOI_Content_Pack_Overview.pptx) · [PDF](docs/KOI_Content_Pack_Overview.pdf) |
+| **Test guide** | 14-slide acceptance guide — nine tests with steps and expected results | [PPTX](docs/KOI_Content_Pack_Test_Guide.pptx) · [PDF](docs/KOI_Content_Pack_Test_Guide.pdf) |
 
-There is also a 12-slide overview deck for briefings and demos —
-[`docs/KOI_Content_Pack_Overview.pptx`](docs/KOI_Content_Pack_Overview.pptx).
+The **test guide** is the fastest way to confirm a deployment: it walks connectivity,
+event collection, the command surface, the dashboard, triage, both investigations,
+the analyst gate, the scheduled hunt and the Script Runner job — with one line of
+evidence per test to sign off against.
 
 Regenerate any of them after editing the content:
 
 ```bash
 cd docs
-node build_guide.js     # content lives here → rebuilds the .docx   (needs the `docx` npm package)
-python3 build_pdf.py    # renders the .docx → styled .pdf           (needs pandoc + wkhtmltopdf)
-node build_deck.js      # rebuilds the overview .pptx               (needs the `pptxgenjs` npm package)
+node build_guide.js       # content lives here → rebuilds the .docx  (needs the `docx` npm package)
+python3 build_pdf.py      # renders the .docx → styled .pdf          (needs pandoc + wkhtmltopdf)
+node build_deck.js        # rebuilds the overview .pptx              (needs the `pptxgenjs` npm package)
+node build_test_guide.js  # rebuilds the test-guide .pptx            (needs the `pptxgenjs` npm package)
+
+# decks → PDF (LibreOffice)
+soffice --headless --convert-to pdf KOI_Content_Pack_Overview.pptx KOI_Content_Pack_Test_Guide.pptx
 ```
