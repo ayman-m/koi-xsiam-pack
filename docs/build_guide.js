@@ -418,16 +418,26 @@ const step_sdkDeploy = newStep();
 const sdkDeploy = [
   h1("12. Deploying the Full Pack as a Single Object (demisto-sdk)"),
   p("The pack can be delivered to a tenant as one artifact — a pack zip — using Palo Alto Networks' demisto-sdk. This is the recommended path for dev/test tenants and CI pipelines; production tenants normally install from the Marketplace."),
-  h2("12.1 One-time setup"),
+  h2("12.1 Choosing an install path"),
+  p("The path you choose determines whether event collection works at all. Commands and playbooks behave the same on every path; the collector and the rules do not."),
+  table([2700, 3900, 1200, 2560], [
+    ["Path", "What lands on the tenant", "Events flow?", "Use when"],
+    ["Marketplace", "Integration, parsing/modeling rules, dashboard and playbooks", "Yes", "Production tenants"],
+    ["demisto-sdk --xsiam", "Everything, at the version in your repo", "Yes", "Dev/test and CI"],
+    ["Pre-built dist/Koi.zip", "Integration plus the 3 Script Runner playbooks only — no rules, no dashboard", "No", "Not for XSIAM"],
+    ["Manual per-item", "Only the items you import yourself", "Only if you add the rules", "Partial adoption"],
+  ]),
+  p("The pre-built dist/Koi.zip is an XSOAR-marketplace build. Inside it the integration carries isfetchevents: false (the isfetchevents:xsoar: false override has been resolved into the base field), and the artifact contains no parsing rules, no modeling rules and no dashboard. Uploading it to a Cortex XSIAM tenant produces an instance whose commands all work while the koi_koi_raw dataset stays permanently empty — which presents like a collector fault but is simply the wrong artifact. For XSIAM, install from the Marketplace or upload with demisto-sdk --xsiam.", { italics: true, color: GRAY }),
+  h2("12.2 One-time setup"),
   step_sdkDeploy([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
   step_sdkDeploy([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
   step_sdkDeploy([{ text: "Set the connection environment variables: ", bold: true }, { text: "DEMISTO_BASE_URL", font: "Consolas", size: 20 }, { text: " (the api- URL of the tenant), " }, { text: "DEMISTO_API_KEY", font: "Consolas", size: 20 }, { text: ", and " }, { text: "XSIAM_AUTH_ID", font: "Consolas", size: 20 }, { text: " (the key's ID)." }]),
-  h2("12.2 Build and push"),
+  h2("12.3 Build and push"),
   p("Validate, build the single pack artifact, and upload:"),
   code("demisto-sdk validate -i Packs/Koi/Playbooks"),
   code("demisto-sdk zip-packs -i Packs/Koi -o zipped"),
   code("demisto-sdk upload -i Packs/Koi -z --xsiam"),
-  h2("12.3 Notes verified in practice"),
+  h2("12.4 Notes verified in practice"),
   bullet([{ text: "API key type matters. ", bold: true }, { text: "demisto-sdk sends the API key as-is, which works only with a Standard XSIAM API key. With an Advanced key the SDK cannot connect; in that case build the artifact with zip-packs and POST zipped/uploadable_packs/Koi.zip (multipart, field name \"file\") to https://api-<tenant>/xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true using the advanced-key signed headers. Note the endpoint is under /xsoar/, not /xsoar/public/v1/." }]),
   bullet([{ text: "API modules. ", bold: true }, { text: "The Koi integration imports ContentClientApiModule; the build inlines it from Packs/ApiModules/Scripts/ContentClientApiModule/ — copy that folder from the demisto/content repository into your content repo before running zip-packs." }]),
   bullet([{ text: "Pack items become system-owned. ", bold: true }, { text: "After a pack install, its items (playbooks, integration) are marked system and reject individual item uploads. Ship subsequent changes as a new pack version (bump currentVersion in pack_metadata.json, add a release note, re-upload the zip)." }]),
@@ -438,6 +448,7 @@ const sdkDeploy = [
 const manualOnboard = [
   h1("13. Onboarding Individual Items Manually"),
   p("If you prefer to adopt only part of the pack (or cannot use the SDK), each item can be onboarded by hand in the tenant UI. Import order matters where items reference each other by name."),
+  h2("13.1 Item-by-item reference"),
   table([2900, 6460], [
     ["Item", "How to onboard manually"],
     ["Integration (Koi.yml)", "Marketplace → install the KOI pack (recommended); or Settings → Configurations → Automation & Feed Integrations → Upload Integration and select the YAML."],
@@ -449,6 +460,20 @@ const manualOnboard = [
     ["Koi Alerts Dashboard", "Dashboards & Reports → New Dashboard → Import, select Koi_Alerts_Dashboard.json."],
   ]),
   p("Keep item names unchanged when importing manually — the Job references the main playbook by name, the main playbook references the List by name, and the sub-playbooks reference each other by name.", { italics: true, color: GRAY }),
+  h2("13.2 Running only the Script Runner Job"),
+  p("A common case is wanting nothing from KOI's API — only the ability to run KOI script packages on Cortex-Agent endpoints on a schedule. That needs a small subset of the pack."),
+  p("The three Script Runner playbooks invoke no koi-* command at all. They use only the Cortex-native core-get-scripts, core-get-endpoints and core-script-run, plus the built-in send-mail for notifications. Consequently this deployment requires no KOI API key, no KOI integration instance, no parsing or modeling rules and no dashboard — and it works on Cortex XSOAR as well as Cortex XSIAM."),
+  p("Import exactly these four items, in this order. Sub-playbook references bind by name, so importing a parent before its child leaves the parent pointing at a playbook that does not yet exist:"),
+  table([700, 4100, 4560], [
+    ["#", "Item", "Where"],
+    ["1", "Koi Unified - Execute Endpoint Script", "Investigation & Response → Automation → Playbooks → Import"],
+    ["2", "Koi Unified - Process Config Entry", "Investigation & Response → Automation → Playbooks → Import"],
+    ["3", "Koi Unified - Script Runner", "Investigation & Response → Automation → Playbooks → Import"],
+    ["4", "Koi Script Runner (JSON List)", "Settings → Configurations → Object Setup → Lists → New List, type JSON"],
+  ]),
+  p("Then create the Job: Investigation & Response → Automation → Jobs → New Job, Time-triggered, playbook \"Koi Unified - Script Runner\", and set the recurrence."),
+  p("Three things must already exist on the tenant, referenced by name from the List: the KOI script package in Action Center → Scripts Library (its Library name must equal script.name exactly, or pin script.uuid instead), an endpoint group named in target.endpoint_groups containing connected and unisolated agents whose OS matches target.endpoint_os, and — only if you configure notifications — an enabled mail-sender instance matching notification.sendmail_instance.name."),
+  p("To validate this deployment on its own, run only test 9 of the test guide: Run now on the Job, then confirm ScriptResult ok:true with an action_id per entry and COMPLETED_SUCCESSFULLY in Action Center. Tests 1 to 8 all exercise the KOI API and do not apply.", { italics: true, color: GRAY }),
 ];
 
 /* ---------------- 12. Validation ---------------- */

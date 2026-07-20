@@ -17,6 +17,7 @@ const ORANGE = "E8551F";
 const CYAN = "22D3EE";
 const GREEN = "3FB950";
 const AMBER = "F5A524";
+const RED = "F04438";
 const WHITE = "FFFFFF";
 const BODY = "B4B7BD";
 const MUTED = "6E747E";
@@ -170,31 +171,172 @@ const testSlide = (kicker, title, steps, expects, note) => {
   s.addNotes("Work top to bottom. Tests 1-4 prove the plumbing, 5-8 prove the automation, 9 proves fleet execution. Test 7 is the safety gate and must pass before production use.");
 }
 
-/* ============================ 2. Before you start ============================ */
+/* ============================ 2. Requirements ============================ */
 {
   const s = newSlide();
-  heading(s, "Prerequisites", "Before you start");
-  s.addText("Have these in place first — most failed tests trace back to a missing item here.", {
-    x: M, y: 1.42, w: 9.6, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
+  heading(s, "Requirements", "What you need, by what you are deploying");
+  s.addText("The two deployments have very different prerequisites. Pick your column before you start.", {
+    x: M, y: 1.42, w: 9.8, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
   });
-  const reqs = [
-    ["1", "A KOI API key", "KOI console → Settings → API Access. Needs the xt-Administrator role.", ORANGE],
-    ["2", "The pack installed", "Integration, parsing/modeling rules, dashboard and playbooks on the tenant.", ORANGE],
-    ["3", "An egress path KOI accepts", "KOI restricts sensitive endpoints by source IP. Cloud egress often returns 403.", CYAN],
-    ["4", "A KOI alert to work with", "At least one ingested alert with source koi, for tests 5 to 7.", ORANGE],
-    ["5", "For test 9 only", "A script package in the Scripts Library, an endpoint group, and the Koi Script Runner List.", CYAN],
-    ["6", "Nothing in production", "Every test is read-only except the one you explicitly approve in test 7.", GREEN],
+  const cols = [
+    ["Full pack", ORANGE, "Collection, triage, investigation and response", [
+      "Cortex XSIAM tenant — the parsing and modeling rules are fromversion 8.4.0",
+      "A KOI API key with the xt-Administrator role",
+      "An egress IP KOI accepts, or a Cortex engine that has one",
+      "demisto-sdk 1.38+ and a Standard XSIAM API key",
+      "At least one ingested KOI alert, for tests 5 to 7",
+    ]],
+    ["Script Runner only", CYAN, "Run KOI scripts on endpoints from a Job", [
+      "Cortex XSIAM or XSOAR with Cortex agents installed",
+      "The KOI script package uploaded to Action Center → Scripts Library",
+      "An endpoint group containing connected, unisolated agents",
+      "Optionally a mail-sender instance for notifications",
+      "No KOI API key and no KOI integration instance",
+    ]],
   ];
-  const cw = (W - 0.4) / 2, ch = 1.42;
-  reqs.forEach(([n, t, d, c], i) => {
-    const x = M + (i % 2) * (cw + 0.4);
-    const y = 1.94 + Math.floor(i / 2) * (ch + 0.22);
-    card(s, x, y, cw, ch);
-    chip(s, x + 0.26, y + 0.28, n, c, 0.34);
-    s.addText(t, { x: x + 0.8, y: y + 0.22, w: cw - 1.05, h: 0.32, fontSize: 13.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(d, { x: x + 0.8, y: y + 0.6, w: cw - 1.05, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+  const cw = (W - 0.4) / 2;
+  cols.forEach(([t, c, sub, items], i) => {
+    const x = M + i * (cw + 0.4);
+    card(s, x, 1.92, cw, 4.5, i ? CARD_HI : CARD);
+    s.addText(t, { x: x + 0.34, y: 2.14, w: cw - 0.68, h: 0.34, fontSize: 16, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    s.addText(sub, { x: x + 0.34, y: 2.52, w: cw - 0.68, h: 0.3, fontSize: 11, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+    rowList(s, items, x + 0.34, 2.98, cw - 0.68, "tick");
   });
-  s.addNotes("The egress prerequisite is the single most common cause of a failed test 1 or 3.");
+  s.addText("The Script Runner playbooks call no koi-* command at all — only core-get-scripts, core-get-endpoints and core-script-run.", {
+    x: M, y: 6.6, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
+  });
+  s.addNotes("Verified against the playbook YAML: the three Koi Unified playbooks invoke no KOI API command, so a script-only customer needs neither a KOI key nor an integration instance.");
+}
+
+/* ============================ 3. Install paths ============================ */
+{
+  const s = newSlide();
+  heading(s, "Installation", "Choose your path — it decides whether events flow");
+  const hy = 1.56;
+  s.addText("Path",        { x: M + 0.3,  y: hy, w: 2.7, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("What lands",  { x: M + 3.2,  y: hy, w: 4.4, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Events?",     { x: M + 7.9,  y: hy, w: 1.1, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Use when",    { x: M + 9.1,  y: hy, w: 2.7, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  const paths = [
+    ["Marketplace", "Integration, rules, dashboard and playbooks", true, "Production tenants"],
+    ["demisto-sdk --xsiam", "Everything, at the version in your repo", true, "Dev/test and CI"],
+    ["Pre-built dist/Koi.zip", "Integration + 3 playbooks only. No rules, no dashboard", false, "Not for XSIAM"],
+    ["Manual per-item", "Only the items you import yourself", false, "Partial adoption"],
+  ];
+  const ry = 1.94, rh = 0.66;
+  paths.forEach(([p, lands, ok, when], i) => {
+    const y = ry + i * (rh + 0.15);
+    card(s, M, y, W, rh, i === 2 ? CARD_HI : CARD);
+    s.addText(p,     { x: M + 0.3, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 11.5, bold: true, color: i === 2 ? AMBER : WHITE, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+    s.addText(lands, { x: M + 3.2, y: y + 0.19, w: 4.4, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+    s.addText(ok ? "✓ yes" : "✗ no", { x: M + 7.9, y: y + 0.19, w: 1.1, h: 0.3, fontSize: 11.5, bold: true, color: ok ? GREEN : RED, fontFace: F, margin: 0, valign: "top" });
+    s.addText(when,  { x: M + 9.1, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+  });
+  card(s, M, 5.28, W, 0.98, CARD_HI);
+  chip(s, M + 0.28, 5.58, "!", AMBER, 0.34);
+  s.addText("The pre-built zip is an XSOAR-marketplace build: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs the Marketplace or a demisto-sdk --xsiam upload.", {
+    x: M + 0.82, y: 5.46, w: W - 1.2, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  });
+  s.addNotes("This is the single most consequential choice in the guide. A zip upload produces a tenant where every command works and no data ever arrives — which reads like a collector bug but is simply the wrong artifact.");
+}
+
+/* ============================ 4. Install the full pack ============================ */
+{
+  const s = newSlide();
+  heading(s, "Installation", "Full pack with demisto-sdk");
+  const sw = 7.0, ew = W - sw - 0.4, ex = M + sw + 0.4;
+  card(s, M, 1.58, sw, 4.55);
+  s.addText("Steps", { x: M + 0.34, y: 1.82, w: 3.0, h: 0.3, fontSize: 12.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  rowList(s, [
+    "Install the SDK — 1.38+, older versions reject the platform marketplace.",
+    ["pip3 install demisto-sdk", "code"],
+    "Place the pack at Packs/Koi inside a content-repo scaffold.",
+    "Copy Packs/ApiModules/Scripts/ContentClientApiModule/ from demisto/content.",
+    "Point the SDK at the tenant:",
+    ["export DEMISTO_BASE_URL=https://api-<tenant>...", "code"],
+    ["export DEMISTO_API_KEY=<standard-key>", "code"],
+    ["export XSIAM_AUTH_ID=<key-id>", "code"],
+    ["demisto-sdk upload -i Packs/Koi -z --xsiam", "code"],
+  ], M + 0.34, 2.24, sw - 0.68, "num");
+
+  card(s, ex, 1.58, ew, 4.55, CARD_HI);
+  s.addText("What to expect", { x: ex + 0.34, y: 1.82, w: 3.4, h: 0.3, fontSize: 12.5, bold: true, color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  rowList(s, [
+    "The pack appears on the tenant at its version.",
+    "Integration, playbooks, rules and dashboard all land together.",
+    "Fetch events is available on the instance.",
+  ], ex + 0.34, 2.24, ew - 0.68, "tick");
+
+  card(s, M, 6.25, W, 0.85, CARD_HI);
+  chip(s, M + 0.28, 6.5, "!", AMBER, 0.34);
+  s.addText("The SDK sends the API key as-is, so it works only with a Standard XSIAM key. With an Advanced key the SDK cannot connect — build with zip-packs and POST the artifact to /xsoar/contentpacks/installed/upload with signed headers instead.", {
+    x: M + 0.82, y: 6.38, w: W - 1.2, h: 0.6, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  });
+  s.addNotes("Pack-installed items become system-owned and reject individual item uploads afterwards — ship later changes as a new pack version.");
+}
+
+/* ============================ 5. Script Runner only ============================ */
+{
+  const s = newSlide();
+  heading(s, "Installation", "Script Runner only — the minimal import");
+  s.addText("To run KOI scripts from an XSIAM Job and nothing else, import these four items by hand. Nothing else in the pack is required.", {
+    x: M, y: 1.42, w: 10.4, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
+  });
+  const items = [
+    ["1", "Koi Unified - Execute Endpoint Script", "Playbooks → Import", "Import first — the others reference it by name.", CYAN],
+    ["2", "Koi Unified - Process Config Entry", "Playbooks → Import", "Import second — calls the executor above.", CYAN],
+    ["3", "Koi Unified - Script Runner", "Playbooks → Import", "Import third — the Job entry point.", CYAN],
+    ["4", "Koi Script Runner", "Object Setup → Lists, type JSON", "The configuration array. Name must be exact.", ORANGE],
+  ];
+  const rh = 0.84;
+  items.forEach(([n, name, where, note, c], i) => {
+    const y = 1.9 + i * (rh + 0.16);
+    card(s, M, y, W, rh);
+    chip(s, M + 0.28, y + 0.24, n, c, 0.34);
+    s.addText(name,  { x: M + 0.82, y: y + 0.16, w: 4.4, h: 0.28, fontSize: 12, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+    s.addText(where, { x: M + 0.82, y: y + 0.46, w: 4.4, h: 0.26, fontSize: 10, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+    s.addText(note,  { x: M + 5.5,  y: y + 0.28, w: W - 5.8, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  });
+  card(s, M, 5.92, W, 1.06, CARD_HI);
+  s.addText("Then create the Job", { x: M + 0.32, y: 6.06, w: 3.4, h: 0.28, fontSize: 11.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Automation → Jobs → New Job, Time-triggered, playbook Koi Unified - Script Runner. You do NOT need the KOI integration, an API key, the parsing or modeling rules, the dashboard, or any of the seven KOI triage playbooks — the Script Runner set calls no KOI API command.", {
+    x: M + 0.32, y: 6.38, w: W - 0.64, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  });
+  s.addNotes("Import order matters because sub-playbook references bind by name — importing the parent first leaves it pointing at a playbook that does not exist yet.");
+}
+
+/* ============================ 6. Naming requirements ============================ */
+{
+  const s = newSlide();
+  heading(s, "Requirements", "Names that must match exactly");
+  s.addText("Everything below binds by name at run time. A mismatch does not raise a config error — it fails or silently skips at the next run.", {
+    x: M, y: 1.42, w: 10.6, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
+  });
+  const hy = 1.9;
+  s.addText("Name or key",   { x: M + 0.3, y: hy, w: 3.6, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Must match",    { x: M + 4.1, y: hy, w: 3.5, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("If it does not", { x: M + 7.8, y: hy, w: 4.0, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  const binds = [
+    ["Koi Script Runner", "The JSON List name, character for character", "Job runs, does nothing, prints \"no valid configuration found\""],
+    ["script.name", "A script in Action Center → Scripts Library", "Fails: \"script name was not found in the library\""],
+    ["script.uuid", "Optional. Wins over script.name when set", "Two library entries with one name fail as \"multiple scripts matched\""],
+    ["target.endpoint_groups", "An existing endpoint group with agents in it", "Entry is SKIPPED — an info entry, no failure email"],
+    ["target.endpoint_os", "Windows, macOS or Linux", "Entry is reported invalid and skipped"],
+    ["sendmail_instance.name", "An enabled mail instance, if notifications are on", "Notification step fails"],
+    ["Sub-playbook names", "KOI - / Koi Unified - names, unrenamed", "Parent cannot resolve the sub-playbook"],
+  ];
+  const rh = 0.54;
+  binds.forEach(([k, m, f], i) => {
+    const y = 2.24 + i * (rh + 0.09);
+    card(s, M, y, W, rh);
+    s.addText(k, { x: M + 0.3, y: y + 0.16, w: 3.6, h: 0.28, fontSize: 10.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
+    s.addText(m, { x: M + 4.1, y: y + 0.16, w: 3.5, h: 0.28, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    s.addText(f, { x: M + 7.8, y: y + 0.16, w: 4.0, h: 0.28, fontSize: 10.5, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+  });
+  s.addText("The List name is fixed in the playbook task — XSOAR cannot parameterise ${lists.<name>}. To use another name you must edit the task.", {
+    x: M, y: 6.66, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
+  });
+  s.addNotes("Every one of these is a by-name binding taken from the playbook YAML. The skipped-entry case is the quietest: a valid entry with no matching connected endpoint logs an info entry and deliberately sends no email.");
 }
 
 /* ============================ 3. The test plan ============================ */
@@ -389,7 +531,7 @@ testSlide("Test 9", "Script Runner job",
     "SKIPPED info entries where no connected endpoint matches the OS scope — and no failure email.",
     "Action Center shows COMPLETED_SUCCESSFULLY.",
   ],
-  "Everything binds by name at run time: the script package in the Scripts Library, the endpoint groups, the List and the mail instance. Rename any of them without updating the List and the next run fails or skips — the war room records which reference broke."
+  "Every binding on the 'Names that must match exactly' slide applies here. The war room records which reference broke, and a SKIPPED entry is not a failure — it means no connected, unisolated endpoint currently matches that OS scope."
 ).addNotes("Three outcomes are by design: ok, skipped (valid entry, nothing to run on right now) and failed. Skipped is not a failure and deliberately sends no email.");
 
 /* ============================ 13. Troubleshooting ============================ */

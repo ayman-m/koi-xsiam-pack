@@ -106,21 +106,69 @@ Details in [`Playbooks/README.md`](Playbooks/README.md) and §11 of the customer
 
 ## Deploying this pack to a tenant
 
-**As a single object (recommended for dev/test):** upload `dist/Koi.zip` — either via demisto-sdk:
+Which path you pick decides whether **event collection works at all**:
+
+| Path | What lands on the tenant | Events flow? | Use when |
+|---|---|---|---|
+| **Marketplace** | Integration, parsing/modeling rules, dashboard, playbooks | ✅ | Production tenants |
+| **`demisto-sdk … --xsiam`** | Everything, at the version in your repo | ✅ | Dev/test and CI |
+| **Pre-built `dist/Koi.zip`** | Integration + the 3 Script Runner playbooks only | ❌ | Not for XSIAM — see below |
+| **Manual per-item** | Only what you import yourself | ❌ unless you add the rules | Partial adoption |
+
+> ⚠️ **`dist/Koi.zip` will not collect events.** It is an **XSOAR-marketplace** build: inside it the
+> integration carries `isfetchevents: false` (the `isfetchevents:xsoar: false` override is baked in),
+> and it ships **no parsing rules, no modeling rules and no dashboard**. Upload it to XSIAM and every
+> command works while `koi_koi_raw` stays empty forever — which looks like a collector bug but is just
+> the wrong artifact. It is also stale relative to this repo (3 playbooks, not 10). For XSIAM, install
+> from the Marketplace or upload with the SDK.
+
+**With demisto-sdk (recommended for dev/test):**
 
 ```bash
+pip3 install demisto-sdk                      # 1.38+ — older versions reject the platform marketplace
 export DEMISTO_BASE_URL=https://api-<tenant>... DEMISTO_API_KEY=<standard-key> XSIAM_AUTH_ID=<key-id>
 demisto-sdk upload -i Packs/Koi -z --xsiam
 ```
 
-or, with an **Advanced** API key (which demisto-sdk cannot use), POST the zip with signed headers to
-`https://api-<tenant>.../xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true`.
+The SDK sends the API key as-is, so it needs a **Standard** XSIAM key. With an **Advanced** key the SDK
+cannot connect — build the artifact and POST it with signed headers to
+`https://api-<tenant>/xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true`
+(multipart, field name `file`; note the path is `/xsoar/`, not `/xsoar/public/v1/`).
 
-To rebuild the zip from source: place this pack at `Packs/Koi/` inside a content-repo scaffold (git repo, `.private-repo-settings`, `Tests/secrets_white_list.json`, and `Packs/ApiModules/Scripts/ContentClientApiModule/` copied from demisto/content), then `demisto-sdk zip-packs -i Packs/Koi -o zipped`.
+To build from source, place this pack at `Packs/Koi/` inside a content-repo scaffold (git repo,
+`.private-repo-settings`, `Tests/secrets_white_list.json`, and `Packs/ApiModules/Scripts/ContentClientApiModule/`
+copied from demisto/content), then `demisto-sdk zip-packs -i Packs/Koi -o zipped`.
 
-**Manually (adopt individual items):** import in dependency order — playbooks (executor → processor → main) via Automation → Playbooks → Import; the `Koi Script Runner` List via Settings → Object Setup → Lists; the Job via Automation → Jobs; parsing/modeling rules as user-defined rules targeting `koi_koi_raw`; the dashboard via Dashboards & Reports → Import. Keep item names unchanged — references bind by name.
+**Manually (adopt individual items):** import in dependency order — playbooks (executor → processor → main)
+via Automation → Playbooks → Import; the `Koi Script Runner` List via Settings → Object Setup → Lists; the
+Job via Automation → Jobs; parsing/modeling rules as user-defined rules targeting `koi_koi_raw`; the
+dashboard via Dashboards & Reports → Import. Keep item names unchanged — references bind by name.
 
 > Pack-installed items become system-owned: ship later changes as a new pack version (bump `currentVersion`, add a release note, re-upload).
+
+### Just the Script Runner — the minimal install
+
+If all you want is to **run KOI scripts on endpoints from a scheduled Job**, you do not need the rest of
+the pack. The three Script Runner playbooks call **no `koi-*` command at all** — only `core-get-scripts`,
+`core-get-endpoints` and `core-script-run` — so there is no KOI API key, no integration instance, no
+parsing/modeling rules and no dashboard involved.
+
+Import exactly these four items, **in this order** (sub-playbooks bind by name, so a parent imported first
+points at something that does not exist yet):
+
+| # | Item | Where |
+|---|---|---|
+| 1 | `Koi Unified - Execute Endpoint Script` | Automation → Playbooks → Import |
+| 2 | `Koi Unified - Process Config Entry` | Automation → Playbooks → Import |
+| 3 | `Koi Unified - Script Runner` | Automation → Playbooks → Import |
+| 4 | `Koi Script Runner` (JSON List) | Settings → Object Setup → Lists → New List |
+
+Then create the Job: Automation → Jobs → New Job, **Time-triggered**, playbook `Koi Unified - Script Runner`.
+
+What you still need on the tenant: the **KOI script package** in Action Center → Scripts Library (its name
+must equal `script.name` in the List exactly, or pin `script.uuid`), an **endpoint group** containing
+connected, unisolated agents matching `target.endpoint_os`, and — only if you configure notifications — an
+enabled **mail-sender instance**.
 
 ## Validating a deployment
 
