@@ -6,7 +6,7 @@ const path = require("path");
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";          // 13.3 x 7.5 in — must be set before adding slides
-pres.author = "Cortex XSOAR";
+pres.author = "Cortex XSIAM";
 pres.title = "KOI Content Pack — Test Guide";
 
 /* ---------- palette (matches build_deck.js) ---------- */
@@ -187,7 +187,7 @@ const testSlide = (kicker, title, steps, expects, note) => {
       "At least one ingested KOI alert, for tests 5 to 7",
     ]],
     ["Script Runner only", CYAN, "Run KOI scripts on endpoints from a Job", [
-      "Cortex XSIAM or XSOAR with Cortex agents installed",
+      "A Cortex XSIAM tenant with Cortex agents installed",
       "The KOI script package uploaded to Action Center → Scripts Library",
       "An endpoint group containing connected, unisolated agents",
       "Optionally a mail-sender instance for notifications",
@@ -234,7 +234,7 @@ const testSlide = (kicker, title, steps, expects, note) => {
   });
   card(s, M, 5.28, W, 0.98, CARD_HI);
   chip(s, M + 0.28, 5.58, "!", AMBER, 0.34);
-  s.addText("The pre-built zip is an XSOAR-marketplace build: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs the Marketplace or a demisto-sdk --xsiam upload.", {
+  s.addText("The pre-built zip was built for a different marketplace target: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs the Marketplace or a demisto-sdk --xsiam upload.", {
     x: M + 0.82, y: 5.46, w: W - 1.2, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
   });
   s.addNotes("This is the single most consequential choice in the guide. A zip upload produces a tenant where every command works and no data ever arrives — which reads like a collector bug but is simply the wrong artifact.");
@@ -333,7 +333,7 @@ const testSlide = (kicker, title, steps, expects, note) => {
     s.addText(m, { x: M + 4.1, y: y + 0.16, w: 3.5, h: 0.28, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
     s.addText(f, { x: M + 7.8, y: y + 0.16, w: 4.0, h: 0.28, fontSize: 10.5, color: AMBER, fontFace: F, margin: 0, valign: "top" });
   });
-  s.addText("The List name is fixed in the playbook task — XSOAR cannot parameterise ${lists.<name>}. To use another name you must edit the task.", {
+  s.addText("The List name is fixed in the playbook task — the platform cannot parameterise ${lists.<name>}. To use another name you must edit the task.", {
     x: M, y: 6.66, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
   s.addNotes("Every one of these is a by-name binding taken from the playbook YAML. The skipped-entry case is the quietest: a valid entry with no matching connected endpoint logs an info entry and deliberately sends no email.");
@@ -473,7 +473,7 @@ testSlide("Test 6", "The two investigations",
     "Item: catalog risk and AI summary, org exposure, endpoints and users, blocklist state, remediation and approval history.",
     "Device: everything installed on the host, which of it is risky, host remediations.",
   ],
-  "Known cosmetic issue: a few item-investigation fields render with array brackets — [\"high\"] rather than high — because XSOAR resolves arrays differently inside a sub-playbook. The values are correct and the analyst-facing triage summary renders clean."
+  "Known cosmetic issue: a few item-investigation fields render with array brackets — [\"high\"] rather than high — because the platform resolves arrays differently inside a sub-playbook. The values are correct and the analyst-facing triage summary renders clean."
 ).addNotes("Both investigations are best-effort: if KOI is unreachable the playbook still completes, it just has less to show.");
 
 /* ============================ 10. Test 7 ============================ */

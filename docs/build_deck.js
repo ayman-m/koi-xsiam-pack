@@ -6,7 +6,7 @@ const path = require("path");
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";          // 13.3 x 7.5 in — must be set before adding slides
-pres.author = "Cortex XSOAR";
+pres.author = "Cortex XSIAM";
 pres.title = "KOI Content Pack — Overview";
 
 /* ---------- palette ---------- */
@@ -93,7 +93,7 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     x: 10.6, y: 3.4, w: 3.6, h: 3.6,
     fill: { color: CYAN, transparency: 94 }, line: { color: CYAN, width: 1 },
   });
-  s.addText("CORTEX XSIAM  ·  CORTEX XSOAR  ·  CONTENT PACK", {
+  s.addText("CORTEX XSIAM  ·  CONTENT PACK", {
     x: M, y: 1.75, w: W, h: 0.3, fontSize: 12, bold: true,
     color: ORANGE, fontFace: F, charSpacing: 3, margin: 0,
   });
@@ -494,7 +494,7 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     s.addText(t, { x: x + 0.28, y: 4.58, w: cw - 0.56, h: 0.32, fontSize: 13.5, bold: true, color: WHITE, fontFace: F, margin: 0 });
     s.addText(d, { x: x + 0.28, y: 4.92, w: cw - 0.56, h: 0.72, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13 });
   });
-  s.addText("KOI content pack  ·  Cortex XSIAM & Cortex XSOAR", {
+  s.addText("KOI content pack  ·  Cortex XSIAM", {
     x: M, y: 6.35, w: W, h: 0.3, fontSize: 11, color: MUTED, fontFace: F, margin: 0,
   });
   s.addNotes("Close: the three places to go for detail.");

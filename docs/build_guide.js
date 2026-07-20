@@ -1,4 +1,4 @@
-/* Build "KOI Integration for Cortex XSIAM & XSOAR — Customer User Guide" (.docx) */
+/* Build "KOI Integration for Cortex XSIAM — Customer User Guide" (.docx) */
 const {
   AlignmentType, BorderStyle, Document, Footer, HeadingLevel, LevelFormat,
   PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell,
@@ -89,7 +89,7 @@ const hr = new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: B
 /* ---------------- Cover ---------------- */
 const cover = [
   new Paragraph({ spacing: { before: 2800, after: 200 }, children: [new TextRun({ text: "KOI Integration", bold: true, size: 72, color: ORANGE, font: "Calibri" })] }),
-  new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: "for Cortex XSIAM & Cortex XSOAR", bold: true, size: 40, color: SLATE, font: "Calibri" })] }),
+  new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: "for Cortex XSIAM", bold: true, size: 40, color: SLATE, font: "Calibri" })] }),
   hr,
   new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: "Customer User Guide", size: 32, color: GRAY, font: "Calibri" })] }),
   new Paragraph({ spacing: { after: 500 }, children: [
@@ -100,7 +100,7 @@ const cover = [
     ["Document", "KOI Content Pack — Customer User Guide"],
     ["Customer", "[CUSTOMER NAME]"],
     ["Pack version", "1.3.0"],
-    ["Applies to", "Cortex XSIAM (event collection + commands) and Cortex XSOAR (commands)"],
+    ["Applies to", "Cortex XSIAM — event collection, commands, playbooks and dashboard"],
     ["Last updated", "July 20, 2026"],
   ]),
   new Paragraph({ children: [new PageBreak()] }),
@@ -152,7 +152,7 @@ const intro = [
 const prereq = [
   h1("2. Prerequisites"),
   bullet("An active KOI tenant, and a KOI account with the xt-Administrator role (required to create API keys)."),
-  bullet("Cortex XSIAM for event collection, modeling rules, and the dashboard. The commands also work from Cortex XSOAR."),
+  bullet("A Cortex XSIAM tenant — event collection, the parsing and modeling rules, the dashboard and the command surface all run there."),
   bullet([{ text: "Outbound HTTPS access from your Cortex tenant/engine to " }, { text: "https://api.prod.koi.security/", font: "Consolas", size: 20 }, { text: "." }]),
   bullet([{ text: "An egress IP that KOI accepts. ", bold: true }, { text: "KOI applies IP-based restrictions at its edge to the sensitive API endpoints (users, inventory, Koidex, governance). Requests leaving from shared datacenter or cloud egress ranges can be rejected with HTTP 403 even when the API key is valid and the same key succeeds from a corporate network. Event collection is unaffected. If your Cortex tenant egresses from a cloud range, run the KOI integration on a Cortex engine whose egress IP KOI accepts — see section 15." }]),
 ];
@@ -173,7 +173,7 @@ const apikey = [
 const step_install = newStep();
 const install = [
   h1("4. Install the Pack"),
-  step_install("In Cortex XSIAM/XSOAR, open Marketplace."),
+  step_install("In Cortex XSIAM, open Marketplace."),
   step_install([{ text: "Search for " }, { text: "KOI", bold: true }, { text: " and open the pack." }]),
   step_install("Click Install. The integration, parsing/modeling rules, and the dashboard are installed together."),
 ];
@@ -181,7 +181,7 @@ const install = [
 /* ---------------- 5. Configure ---------------- */
 const configure = [
   h1("5. Configure the Integration Instance"),
-  p("In Cortex XSIAM, go to Settings → Configurations → Automation & Feed Integrations; in Cortex XSOAR, go to Settings → Integrations → Instances. Search for KOI and click Add instance."),
+  p("In Cortex XSIAM, go to Settings → Configurations → Automation & Feed Integrations. Search for KOI and click Add instance."),
   h2("5.1 Connection parameters"),
   table([2700, 4460, 2200], [
     ["Parameter", "Description", "Default"],
@@ -427,7 +427,7 @@ const sdkDeploy = [
     ["Pre-built dist/Koi.zip", "Integration plus the 3 Script Runner playbooks only — no rules, no dashboard", "No", "Not for XSIAM"],
     ["Manual per-item", "Only the items you import yourself", "Only if you add the rules", "Partial adoption"],
   ]),
-  p("The pre-built dist/Koi.zip is an XSOAR-marketplace build. Inside it the integration carries isfetchevents: false (the isfetchevents:xsoar: false override has been resolved into the base field), and the artifact contains no parsing rules, no modeling rules and no dashboard. Uploading it to a Cortex XSIAM tenant produces an instance whose commands all work while the koi_koi_raw dataset stays permanently empty — which presents like a collector fault but is simply the wrong artifact. For XSIAM, install from the Marketplace or upload with demisto-sdk --xsiam.", { italics: true, color: GRAY }),
+  p("The pre-built dist/Koi.zip was built for a different marketplace target. Inside it the integration carries isfetchevents: false, and the artifact contains no parsing rules, no modeling rules and no dashboard. Uploading it to a Cortex XSIAM tenant produces an instance whose commands all work while the koi_koi_raw dataset stays permanently empty — which presents like a collector fault but is simply the wrong artifact. For XSIAM, install from the Marketplace or upload with demisto-sdk --xsiam.", { italics: true, color: GRAY }),
   h2("12.2 One-time setup"),
   step_sdkDeploy([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
   step_sdkDeploy([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
@@ -462,7 +462,7 @@ const manualOnboard = [
   p("Keep item names unchanged when importing manually — the Job references the main playbook by name, the main playbook references the List by name, and the sub-playbooks reference each other by name.", { italics: true, color: GRAY }),
   h2("13.2 Running only the Script Runner Job"),
   p("A common case is wanting nothing from KOI's API — only the ability to run KOI script packages on Cortex-Agent endpoints on a schedule. That needs a small subset of the pack."),
-  p("The three Script Runner playbooks invoke no koi-* command at all. They use only the Cortex-native core-get-scripts, core-get-endpoints and core-script-run, plus the built-in send-mail for notifications. Consequently this deployment requires no KOI API key, no KOI integration instance, no parsing or modeling rules and no dashboard — and it works on Cortex XSOAR as well as Cortex XSIAM."),
+  p("The three Script Runner playbooks invoke no koi-* command at all. They use only the Cortex-native core-get-scripts, core-get-endpoints and core-script-run, plus the built-in send-mail for notifications. Consequently this deployment requires no KOI API key, no KOI integration instance, no parsing or modeling rules and no dashboard."),
   p("Import exactly these four items, in this order. Sub-playbook references bind by name, so importing a parent before its child leaves the parent pointing at a playbook that does not yet exist:"),
   table([700, 4100, 4560], [
     ["#", "Item", "Where"],

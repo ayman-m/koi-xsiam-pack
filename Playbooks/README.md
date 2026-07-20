@@ -93,7 +93,7 @@ Attach `KOI - Alert Triage` to KOI alerts (source `koi`). It reads the alert des
 
 Validated on-tenant end to end through an **office-egress engine** (so the KOI commands actually return data, not `403`): the triage runs `KOI - Investigate Item`, posts the investigation summary, and the verdict now reflects real catalog data — e.g. a `Vulnerable Dependency` alert on `axios` (whose KOI catalog risk is **High**) escalates to **Malicious**.
 
-> Note: `KOI - Investigate Item` runs as a sub-playbook, where XSOAR array/object DT handling differs from the parent; a few investigation-summary fields may render with array brackets (`["high"]`, `[0]`). The values are correct and the analyst-facing triage summary renders as clean scalars.
+> Note: `KOI - Investigate Item` runs as a sub-playbook, where the platform's array/object DT handling differs from the parent; a few investigation-summary fields may render with array brackets (`["high"]`, `[0]`). The values are correct and the analyst-facing triage summary renders as clean scalars.
 
 > The triage playbooks call `koi-koidex-risk-report` through a configured KOI integration instance. Enrichment is best-effort (continue-on-error): if the instance can't reach the KOI API, the verdict still resolves from the alert's own fields.
 
@@ -135,7 +135,7 @@ the war room.
 ## Known limitation
 
 The main playbook reads the List named **`Koi Script Runner`** (fixed at the
-task level — XSOAR's `${lists.<name>}` accessor cannot be parameterized by a
+task level — the `${lists.<name>}` accessor cannot be parameterized by a
 playbook input). To use a different List name, edit the "Load the …
 configuration" task in the main playbook.
 

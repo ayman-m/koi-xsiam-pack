@@ -115,9 +115,9 @@ Which path you pick decides whether **event collection works at all**:
 | **Pre-built `dist/Koi.zip`** | Integration + the 3 Script Runner playbooks only | ❌ | Not for XSIAM — see below |
 | **Manual per-item** | Only what you import yourself | ❌ unless you add the rules | Partial adoption |
 
-> ⚠️ **`dist/Koi.zip` will not collect events.** It is an **XSOAR-marketplace** build: inside it the
-> integration carries `isfetchevents: false` (the `isfetchevents:xsoar: false` override is baked in),
-> and it ships **no parsing rules, no modeling rules and no dashboard**. Upload it to XSIAM and every
+> ⚠️ **`dist/Koi.zip` will not collect events.** It was built for a different marketplace target: inside
+> it the integration carries `isfetchevents: false`, and it ships **no parsing rules, no modeling rules
+> and no dashboard**. Upload it to XSIAM and every
 > command works while `koi_koi_raw` stays empty forever — which looks like a collector bug but is just
 > the wrong artifact. It is also stale relative to this repo (3 playbooks, not 10). For XSIAM, install
 > from the Marketplace or upload with the SDK.
