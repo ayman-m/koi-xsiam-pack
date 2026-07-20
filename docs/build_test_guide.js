@@ -340,6 +340,94 @@ const testSlide = (kicker, title, steps, expects, note) => {
   s.addNotes("Every one of these is a by-name binding taken from the playbook YAML. The skipped-entry case is the quietest: a valid entry with no matching connected endpoint logs an info entry and deliberately sends no email.");
 }
 
+/* ============================ 7. The List — purpose and values ============================ */
+{
+  const s = newSlide();
+  heading(s, "Requirements", "The Koi Script Runner List");
+  s.addText("The List is the entire configuration surface for the Job. It says which script to run, on which endpoints, and who to notify — so retargeting never means editing a playbook.", {
+    x: M, y: 1.42, w: 11.2, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
+  });
+  const sw = 6.5, ex = M + sw + 0.4, ew = W - sw - 0.4;
+  card(s, M, 1.92, sw, 3.55);
+  s.addText("One entry per script + OS scope", {
+    x: M + 0.34, y: 2.12, w: sw - 0.68, h: 0.3, fontSize: 12, bold: true, color: ORANGE, fontFace: F, margin: 0, valign: "top",
+  });
+  const json = [
+    '[',
+    '  {',
+    '    "script": { "name": "KOI Deployment Script - Windows" },',
+    '    "target": {',
+    '      "endpoint_groups": ["KOI Endpoints"],',
+    '      "endpoint_os": "Windows"',
+    '    }',
+    '  },',
+    '  { ...one more entry per OS you deploy to... }',
+    ']',
+  ].join("\n");
+  s.addText(json, {
+    x: M + 0.34, y: 2.5, w: sw - 0.68, h: 2.8, fontSize: 10, fontFace: MONO,
+    color: CYAN, margin: 0, lineSpacing: 15, valign: "top",
+  });
+
+  card(s, ex, 1.92, ew, 3.55, CARD_HI);
+  s.addText("The three pointers you set", {
+    x: ex + 0.34, y: 2.12, w: ew - 0.68, h: 0.3, fontSize: 12, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
+  });
+  const ptrs = [
+    ["script.name", "A script package in Action Center → Scripts Library", "Sample: KOI Deployment Script - Windows"],
+    ["target.endpoint_groups", "An endpoint group holding connected, unisolated agents", "Sample: KOI Endpoints"],
+    ["target.endpoint_os", "The OS scope for that entry", "Windows, macOS or Linux"],
+  ];
+  ptrs.forEach(([k, m, sample], i) => {
+    const y = 2.56 + i * 0.94;
+    s.addText(k, { x: ex + 0.34, y, w: ew - 0.68, h: 0.26, fontSize: 10.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
+    s.addText(m, { x: ex + 0.34, y: y + 0.28, w: ew - 0.68, h: 0.26, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+    s.addText(sample, { x: ex + 0.34, y: y + 0.60, w: ew - 0.68, h: 0.24, fontSize: 10, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+  });
+
+  card(s, M, 5.66, W, 1.16, CARD_HI);
+  chip(s, M + 0.28, 6.06, "!", AMBER, 0.34);
+  s.addText("There is no required script name. The pack ships neither the List nor any script package — you create both, and the names above are samples from the customer guide, not fixed values. What matters is that every name in the List matches something that exists on your tenant. To retarget later — a different script, another endpoint group, a new OS — edit the List; the playbooks never change.", {
+    x: M + 0.82, y: 5.84, w: W - 1.2, h: 0.84, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  });
+  s.addNotes("Customers frequently look for a mandated script name. There isn't one: script.name is a pointer into the Action Center Scripts Library, and the only requirement is that the two sides agree. Same for the endpoint group.");
+}
+
+/* ============================ 8. List fields ============================ */
+{
+  const s = newSlide();
+  heading(s, "Requirements", "Every List field, and what it defaults to");
+  const hy = 1.5;
+  s.addText("Field",    { x: M + 0.3, y: hy, w: 4.2, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Required", { x: M + 4.7, y: hy, w: 1.6, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Default and notes", { x: M + 6.5, y: hy, w: 5.3, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  const fields = [
+    ["script.name", "Yes *", "No default. Must equal the Scripts Library name exactly.", GREEN],
+    ["script.uuid", "No", "Wins over script.name. Use it to survive renames or duplicates.", MUTED],
+    ["script.polling_interval_in_seconds", "No", "60 seconds.", MUTED],
+    ["script.timeout_in_seconds", "No", "1800 seconds.", MUTED],
+    ["target.endpoint_os", "Yes", "No default. Windows, macOS or Linux — case-insensitive.", GREEN],
+    ["target.endpoint_groups", "One of these", "No default. Group names holding the target agents.", GREEN],
+    ["target.endpoint_hostnames", "One of these", "No default. Specific hostnames instead of a group.", GREEN],
+    ["notification.recipients", "No", "Omit for no email at all.", MUTED],
+    ["notification.sendmail_instance.name", "No", "Omit to use any enabled mail instance.", MUTED],
+    ["disabled", "No", "false. Set true to skip the entry without deleting it.", MUTED],
+  ];
+  const rh = 0.40;
+  fields.forEach(([f, req, note, c], i) => {
+    const y = 1.84 + i * (rh + 0.06);
+    card(s, M, y, W, rh);
+    s.addText(f,    { x: M + 0.3, y: y + 0.09, w: 4.2, h: 0.26, fontSize: 10, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
+    s.addText(req,  { x: M + 4.7, y: y + 0.09, w: 1.6, h: 0.26, fontSize: 10, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    s.addText(note, { x: M + 6.5, y: y + 0.09, w: 5.3, h: 0.26, fontSize: 10, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  });
+  s.addText("*  script.name or script.uuid — one of the two is required.   Every entry also needs endpoint_os, plus endpoint_groups or endpoint_hostnames.", {
+    x: M, y: 1.84 + fields.length * (rh + 0.06) + 0.14, w: W, h: 0.3,
+    fontSize: 10, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
+  });
+  s.addNotes("An entry missing a required field is not a job failure: it is reported with the offending entry and skipped, and the rest of the List still runs.");
+}
+
 /* ============================ 3. The test plan ============================ */
 {
   const s = newSlide();
