@@ -218,24 +218,25 @@ const testSlide = (kicker, title, steps, expects, note) => {
   s.addText("Events?",     { x: M + 7.9,  y: hy, w: 1.1, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
   s.addText("Use when",    { x: M + 9.1,  y: hy, w: 2.7, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
   const paths = [
-    ["Marketplace", "Integration, rules, dashboard and playbooks", true, "Production tenants"],
-    ["demisto-sdk --xsiam", "Everything, at the version in your repo", true, "Dev/test and CI"],
+    ["demisto-sdk --xsiam", "Everything, at the version you were sent", true, "The normal path"],
     ["Pre-built dist/Koi.zip", "Integration + 3 playbooks only. No rules, no dashboard", false, "Not for XSIAM"],
     ["Manual per-item", "Only the items you import yourself", false, "Partial adoption"],
   ];
   const ry = 1.94, rh = 0.66;
   paths.forEach(([p, lands, ok, when], i) => {
     const y = ry + i * (rh + 0.15);
-    card(s, M, y, W, rh, i === 2 ? CARD_HI : CARD);
-    s.addText(p,     { x: M + 0.3, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 11.5, bold: true, color: i === 2 ? AMBER : WHITE, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+    const warn = p.startsWith("Pre-built");   // highlight by content: index shifts when a row is removed
+    card(s, M, y, W, rh, warn ? CARD_HI : CARD);
+    s.addText(p,     { x: M + 0.3, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 11.5, bold: true, color: warn ? AMBER : WHITE, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
     s.addText(lands, { x: M + 3.2, y: y + 0.19, w: 4.4, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
     s.addText(ok ? "✓ yes" : "✗ no", { x: M + 7.9, y: y + 0.19, w: 1.1, h: 0.3, fontSize: 11.5, bold: true, color: ok ? GREEN : RED, fontFace: F, margin: 0, valign: "top" });
     s.addText(when,  { x: M + 9.1, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
   });
-  card(s, M, 5.28, W, 0.98, CARD_HI);
-  chip(s, M + 0.28, 5.58, "!", AMBER, 0.34);
-  s.addText("The pre-built zip was built for a different marketplace target: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs the Marketplace or a demisto-sdk --xsiam upload.", {
-    x: M + 0.82, y: 5.46, w: W - 1.2, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  const cy = ry + paths.length * (rh + 0.15) + 0.22;
+  card(s, M, cy, W, 0.98, CARD_HI);
+  chip(s, M + 0.28, cy + 0.30, "!", AMBER, 0.34);
+  s.addText("The pre-built zip was built for a different marketplace target: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs a demisto-sdk --xsiam upload.", {
+    x: M + 0.82, y: cy + 0.18, w: W - 1.2, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
   });
   s.addNotes("This is the single most consequential choice in the guide. A zip upload produces a tenant where every command works and no data ever arrives — which reads like a collector bug but is simply the wrong artifact.");
 }

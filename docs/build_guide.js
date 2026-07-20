@@ -173,9 +173,12 @@ const apikey = [
 const step_install = newStep();
 const install = [
   h1("4. Install the Pack"),
-  step_install("In Cortex XSIAM, open Marketplace."),
-  step_install([{ text: "Search for " }, { text: "KOI", bold: true }, { text: " and open the pack." }]),
-  step_install("Click Install. The integration, parsing/modeling rules, and the dashboard are installed together."),
+  p("This pack is delivered to you directly — as pack source or a pack zip — and is not distributed through the Cortex Marketplace. Install only from the artifact you were sent."),
+  p("Do not install the KOI pack published in the Cortex Marketplace. That is a different build produced by someone else; its contents and version do not match this pack.", { bold: true }),
+  step_install("Take the pack artifact you were sent (pack source, or a pack zip)."),
+  step_install("Upload it to the tenant with demisto-sdk — the full procedure is in section 12."),
+  step_install("Confirm the integration, parsing and modeling rules, dashboard and playbooks all appear on the tenant."),
+  p("If you only need the scheduled Script Runner Job and nothing from the KOI API, you can skip the pack install entirely and import four items by hand — see section 13.2.", { italics: true, color: GRAY }),
 ];
 
 /* ---------------- 5. Configure ---------------- */
@@ -417,17 +420,16 @@ const triagePlaybooks = [
 const step_sdkDeploy = newStep();
 const sdkDeploy = [
   h1("12. Deploying the Full Pack as a Single Object (demisto-sdk)"),
-  p("The pack can be delivered to a tenant as one artifact — a pack zip — using Palo Alto Networks' demisto-sdk. This is the recommended path for dev/test tenants and CI pipelines; production tenants normally install from the Marketplace."),
+  p("The pack can be delivered to a tenant as one artifact — a pack zip — using Palo Alto Networks' demisto-sdk. This is the path to use for every tenant, since the pack is delivered directly rather than through the Cortex Marketplace."),
   h2("12.1 Choosing an install path"),
   p("The path you choose determines whether event collection works at all. Commands and playbooks behave the same on every path; the collector and the rules do not."),
   table([2700, 3900, 1200, 2560], [
     ["Path", "What lands on the tenant", "Events flow?", "Use when"],
-    ["Marketplace", "Integration, parsing/modeling rules, dashboard and playbooks", "Yes", "Production tenants"],
-    ["demisto-sdk --xsiam", "Everything, at the version in your repo", "Yes", "Dev/test and CI"],
+    ["demisto-sdk --xsiam", "Everything, at the version you were sent", "Yes", "The normal path"],
     ["Pre-built dist/Koi.zip", "Integration plus the 3 Script Runner playbooks only — no rules, no dashboard", "No", "Not for XSIAM"],
     ["Manual per-item", "Only the items you import yourself", "Only if you add the rules", "Partial adoption"],
   ]),
-  p("The pre-built dist/Koi.zip was built for a different marketplace target. Inside it the integration carries isfetchevents: false, and the artifact contains no parsing rules, no modeling rules and no dashboard. Uploading it to a Cortex XSIAM tenant produces an instance whose commands all work while the koi_koi_raw dataset stays permanently empty — which presents like a collector fault but is simply the wrong artifact. For XSIAM, install from the Marketplace or upload with demisto-sdk --xsiam.", { italics: true, color: GRAY }),
+  p("The pre-built dist/Koi.zip was built for a different marketplace target. Inside it the integration carries isfetchevents: false, and the artifact contains no parsing rules, no modeling rules and no dashboard. Uploading it to a Cortex XSIAM tenant produces an instance whose commands all work while the koi_koi_raw dataset stays permanently empty — which presents like a collector fault but is simply the wrong artifact. For working event collection, upload with demisto-sdk --xsiam.", { italics: true, color: GRAY }),
   h2("12.2 One-time setup"),
   step_sdkDeploy([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
   step_sdkDeploy([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
@@ -451,7 +453,7 @@ const manualOnboard = [
   h2("13.1 Item-by-item reference"),
   table([2900, 6460], [
     ["Item", "How to onboard manually"],
-    ["Integration (Koi.yml)", "Marketplace → install the KOI pack (recommended); or Settings → Configurations → Automation & Feed Integrations → Upload Integration and select the YAML."],
+    ["Integration (Koi.yml)", "Settings → Configurations → Automation & Feed Integrations → Upload Integration, and select the YAML. Note this installs the integration only — the parsing and modeling rules and the dashboard are separate items below."],
     ["Playbooks — Script Runner (3 files)", "Investigation & Response → Automation → Playbooks → Import. Import in dependency order: 1) Koi Unified - Execute Endpoint Script, 2) Koi Unified - Process Config Entry, 3) Koi Unified - Script Runner — sub-playbook references bind by name."],
     ["Playbooks — Triage & response (7 files)", "Same import screen. Import the sub-playbooks first (KOI - Extract Alert Context, KOI - Investigate Item, KOI - Investigate Device, KOI - Enrich Item), then KOI - Block and Remediate and KOI - MCP Server Audit, and finally KOI - Alert Triage. References bind by name."],
     ["Configuration List", "Settings → Configurations → Object Setup → Lists → New List. Name it exactly \"Koi Script Runner\", type JSON, and paste the configuration array (section 10.3)."],
@@ -479,7 +481,7 @@ const manualOnboard = [
 /* ---------------- 12. Validation ---------------- */
 const validation = [
   h1("14. Validating That Everything Works"),
-  p("Run these checks after any deployment (SDK, Marketplace, or manual). Each row gives the action and the evidence that proves the component is healthy."),
+  p("Run these checks after any deployment, whether you uploaded the pack with the SDK or imported items by hand. Each row gives the action and the evidence that proves the component is healthy."),
   table([2500, 3600, 3260], [
     ["Component", "How to validate", "Expected evidence"],
     ["API connectivity", "Instance → Test button; then run !koi-devices-list limit=5 in the CLI.", "Test returns success; a device table renders."],
@@ -517,7 +519,7 @@ const troubleshooting = [
 const support = [
   h1("16. Support & References"),
   bullet([{ text: "KOI product documentation: " }, { text: "https://docs.koi.ai", font: "Consolas", size: 20 }]),
-  bullet("Pack release notes: see the KOI pack page in the Cortex Marketplace."),
+  bullet("Pack release notes: see the ReleaseNotes folder inside the pack artifact you were sent."),
   bullet("For issues with the integration content, contact your Palo Alto Networks / KOI support channel."),
 ];
 

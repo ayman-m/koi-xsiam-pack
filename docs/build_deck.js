@@ -94,7 +94,7 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     fill: { color: CYAN, transparency: 94 }, line: { color: CYAN, width: 1 },
   });
   s.addText("CORTEX XSIAM  ·  CONTENT PACK", {
-    x: M, y: 1.75, w: W, h: 0.3, fontSize: 12, bold: true,
+    x: M, y: 1.75, w: W, h: 0.23, fontSize: 12, bold: true,
     color: ORANGE, fontFace: F, charSpacing: 3, margin: 0,
   });
   s.addText("KOI", {
@@ -405,8 +405,8 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
   const s = newSlide();
   heading(s, "Deployment", "Getting it running");
   const cols = [
-    ["1", "Marketplace", ORANGE, ["Search for KOI and install", "Integration, rules and dashboard land together", "Recommended for production tenants"]],
-    ["2", "Pack zip", CYAN, ["Build with demisto-sdk zip-packs", "Upload as a single object", "Best for dev/test and CI pipelines"]],
+    ["1", "Delivered direct", ORANGE, ["Pack source or a pack zip, sent to you", "Not distributed via the Marketplace", "Install only the artifact you were sent"]],
+    ["2", "Upload with the SDK", CYAN, ["demisto-sdk upload -i Packs/Koi -z --xsiam", "Integration, rules, dashboard and playbooks", "The only path that collects events"]],
     ["3", "Manual items", ORANGE, ["Import individual playbooks and rules", "Import sub-playbooks before their callers", "Keep item names unchanged"]],
   ];
   const cw = (W - 0.7) / 3;

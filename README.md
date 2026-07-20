@@ -106,23 +106,29 @@ Details in [`Playbooks/README.md`](Playbooks/README.md) and §11 of the customer
 
 ## Deploying this pack to a tenant
 
+This pack is delivered to customers **directly** — as pack source or a pack zip sent by email. It is not
+distributed through the Cortex Marketplace.
+
+> ⚠️ **Do not install the KOI pack from the Cortex Marketplace.** The pack published there is a
+> different build, produced by someone else — it is not this pack and its contents and version do not
+> match this repository. Install only from the artifact you were sent.
+
 Which path you pick decides whether **event collection works at all**:
 
 | Path | What lands on the tenant | Events flow? | Use when |
 |---|---|---|---|
-| **Marketplace** | Integration, parsing/modeling rules, dashboard, playbooks | ✅ | Production tenants |
-| **`demisto-sdk … --xsiam`** | Everything, at the version in your repo | ✅ | Dev/test and CI |
+| **`demisto-sdk … --xsiam`** | Everything, at the version you were sent | ✅ | The normal path |
 | **Pre-built `dist/Koi.zip`** | Integration + the 3 Script Runner playbooks only | ❌ | Not for XSIAM — see below |
-| **Manual per-item** | Only what you import yourself | ❌ unless you add the rules | Partial adoption |
+| **Manual per-item** | Only what you import yourself | ❌ unless you add the rules | Partial adoption, e.g. Script Runner only |
 
 > ⚠️ **`dist/Koi.zip` will not collect events.** It was built for a different marketplace target: inside
 > it the integration carries `isfetchevents: false`, and it ships **no parsing rules, no modeling rules
 > and no dashboard**. Upload it to XSIAM and every
 > command works while `koi_koi_raw` stays empty forever — which looks like a collector bug but is just
-> the wrong artifact. It is also stale relative to this repo (3 playbooks, not 10). For XSIAM, install
-> from the Marketplace or upload with the SDK.
+> the wrong artifact. It is also stale relative to this repo (3 playbooks, not 10). For working event
+> collection, upload with the SDK.
 
-**With demisto-sdk (recommended for dev/test):**
+**With demisto-sdk (the normal path):**
 
 ```bash
 pip3 install demisto-sdk                      # 1.38+ — older versions reject the platform marketplace
