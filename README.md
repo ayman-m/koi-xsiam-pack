@@ -143,10 +143,14 @@ The full customer guide — install, configure, all commands, capabilities, the 
 | Word | [`docs/KOI_Integration_Customer_Guide_v1.3.0.docx`](docs/KOI_Integration_Customer_Guide_v1.3.0.docx) |
 | PDF | [`docs/KOI_Integration_Customer_Guide_v1.3.0.pdf`](docs/KOI_Integration_Customer_Guide_v1.3.0.pdf) |
 
-Regenerate both after editing the content:
+There is also a 12-slide overview deck for briefings and demos —
+[`docs/KOI_Content_Pack_Overview.pptx`](docs/KOI_Content_Pack_Overview.pptx).
+
+Regenerate any of them after editing the content:
 
 ```bash
 cd docs
 node build_guide.js     # content lives here → rebuilds the .docx   (needs the `docx` npm package)
 python3 build_pdf.py    # renders the .docx → styled .pdf           (needs pandoc + wkhtmltopdf)
+node build_deck.js      # rebuilds the overview .pptx               (needs the `pptxgenjs` npm package)
 ```
