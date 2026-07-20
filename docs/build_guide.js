@@ -38,12 +38,18 @@ const bullet = (t, opts = {}) =>
     ...opts,
   });
 
-const step = t =>
-  new Paragraph({
-    numbering: { reference: "steps", level: 0 },
-    spacing: { after: 80 },
-    children: (Array.isArray(t) ? t : [{ text: t }]).map(r => new TextRun({ size: 22, color: SLATE, font: "Calibri", ...r })),
-  });
+let __stepInstance = 0;
+// Each numbered list gets its own numbering instance so every section restarts at 1.
+const newStep = () => {
+  const instance = ++__stepInstance;
+  return t =>
+    new Paragraph({
+      numbering: { reference: "steps", level: 0, instance },
+      spacing: { after: 80 },
+      children: (Array.isArray(t) ? t : [{ text: t }]).map(r => new TextRun({ size: 22, color: SLATE, font: "Calibri", ...r })),
+    });
+};
+const step = newStep();
 
 const code = t =>
   new Paragraph({
@@ -95,7 +101,7 @@ const cover = [
     ["Customer", "[CUSTOMER NAME]"],
     ["Pack version", "1.3.0"],
     ["Applies to", "Cortex XSIAM (event collection + commands) and Cortex XSOAR (commands)"],
-    ["Last updated", "July 15, 2026"],
+    ["Last updated", "July 20, 2026"],
   ]),
   new Paragraph({ children: [new PageBreak()] }),
 ];
@@ -120,9 +126,23 @@ const intro = [
     ["Koi Modeling Rule", "Maps KOI alert and audit events to the Cortex Data Model (XDM)."],
     ["Koi Alerts Dashboard", "Ready-made XSIAM dashboard visualizing KOI alert activity."],
     ["Koi Unified Script Runner playbooks", "Three playbooks that run KOI script packages on Cortex-Agent endpoints on a schedule, driven by a Job and configured through a JSON List (section 10)."],
+    ["Alert triage, investigation & response playbooks", "Seven playbooks that triage each KOI alert, run a full item and device investigation, compute a verdict, and drive analyst-gated response (section 11)."],
   ]),
-  h2("1.3 What's new in pack 1.3.0"),
-  bullet([{ text: "13 new read-only commands", bold: true }, { text: " covering devices, device inventory, findings, groups, users, remediations, approval requests, runtime (hardening) policies, Koidex catalog search and risk reports, and fetch-state diagnostics." }]),
+  h2("1.3 Pack capabilities at a glance"),
+  table([2600, 6760], [
+    ["Capability", "What you get"],
+    ["Telemetry collection", "KOI Alerts and Audit logs stream into the koi_koi_raw dataset, normalized by the parsing rule and mapped to the Cortex Data Model by the modeling rule — queryable in XQL and visualized by the bundled dashboard."],
+    ["Asset & posture visibility", "Query the software your workforce actually runs — browser extensions, IDE plugins, npm/PyPI packages, desktop applications, MCP servers and other agentic-AI assets — per item or per device, with KOI's risk scoring."],
+    ["Threat intelligence", "The Koidex catalog returns an independent risk score, findings, compliance data and an AI-generated risk summary for any item, whether or not it is installed in your organization."],
+    ["Automated alert triage", "Every KOI alert is parsed, investigated and classified Benign / Suspicious / Malicious from KOI's own alert type and risk level plus the independent catalog risk. Benign alerts auto-close; the rest escalate for review."],
+    ["Deep investigation", "Per item: catalog risk, AI summary, organization exposure (installs, publisher, signing, endpoint count), the endpoints and users affected, governance state, and remediation/approval history. Per device: everything installed on the affected host and which of it is risky."],
+    ["Analyst-gated response", "A Malicious verdict opens a block approval showing the full investigation; the organization-wide blocklist write happens only after a human approves. Items already on the blocklist short-circuit."],
+    ["Proactive hunting", "A scheduled MCP-server audit flags risky agentic-AI assets across the estate without waiting for an alert."],
+    ["Fleet script execution", "Run KOI script packages (for example the deployment script) on Cortex-Agent endpoints on a schedule, targeted by OS, endpoint group or hostname, configured entirely through a JSON List."],
+  ]),
+  h2("1.4 What's new"),
+  bullet([{ text: "Alert triage, investigation and response playbooks", bold: true }, { text: " — automated triage with a full item and device investigation, a data-driven verdict, and an analyst-gated block (section 11)." }]),
+  bullet([{ text: "13 read-only commands", bold: true }, { text: " covering devices, device inventory, findings, groups, users, remediations, approval requests, runtime (hardening) policies, Koidex catalog search and risk reports, and fetch-state diagnostics." }]),
   bullet([{ text: "First Fetch Time Range", bold: true }, { text: " parameter to control the initial event-collection lookback window." }]),
   bullet([{ text: "Tenant Name", bold: true }, { text: " parameter and automatic tenant identification: every collected event is stamped with koi_tenant_name and koi_customer_id, so events from multiple KOI tenants stay distinguishable." }]),
   bullet([{ text: "Parsing Rule, Modeling Rule, and the Koi Alerts Dashboard", bold: true }, { text: " (new XSIAM content)." }]),
@@ -134,25 +154,28 @@ const prereq = [
   bullet("An active KOI tenant, and a KOI account with the xt-Administrator role (required to create API keys)."),
   bullet("Cortex XSIAM for event collection, modeling rules, and the dashboard. The commands also work from Cortex XSOAR."),
   bullet([{ text: "Outbound HTTPS access from your Cortex tenant/engine to " }, { text: "https://api.prod.koi.security/", font: "Consolas", size: 20 }, { text: "." }]),
+  bullet([{ text: "An egress IP that KOI accepts. ", bold: true }, { text: "KOI applies IP-based restrictions at its edge to the sensitive API endpoints (users, inventory, Koidex, governance). Requests leaving from shared datacenter or cloud egress ranges can be rejected with HTTP 403 even when the API key is valid and the same key succeeds from a corporate network. Event collection is unaffected. If your Cortex tenant egresses from a cloud range, run the KOI integration on a Cortex engine whose egress IP KOI accepts — see section 15." }]),
 ];
 
 /* ---------------- 3. API key ---------------- */
+const step_apikey = newStep();
 const apikey = [
   h1("3. Create Your KOI API Key"),
-  step([{ text: "Ensure the appropriate role. ", bold: true }, { text: "To create an API key you must hold the xt-Administrator role in KOI." }]),
-  step([{ text: "Open Settings. ", bold: true }, { text: "Access the Settings page from the top navigation bar of the KOI console." }]),
-  step([{ text: "Open the API Access tab. ", bold: true }, { text: "In Settings, select the API Access tab." }]),
-  step([{ text: "Create the key. ", bold: true }, { text: "Click Create new API key." }]),
-  step([{ text: "Copy the key. ", bold: true }, { text: "Within a few seconds the new key appears in the table. Click Copy next to it and store it securely — you will paste it into the integration instance." }]),
+  step_apikey([{ text: "Ensure the appropriate role. ", bold: true }, { text: "To create an API key you must hold the xt-Administrator role in KOI." }]),
+  step_apikey([{ text: "Open Settings. ", bold: true }, { text: "Access the Settings page from the top navigation bar of the KOI console." }]),
+  step_apikey([{ text: "Open the API Access tab. ", bold: true }, { text: "In Settings, select the API Access tab." }]),
+  step_apikey([{ text: "Create the key. ", bold: true }, { text: "Click Create new API key." }]),
+  step_apikey([{ text: "Copy the key. ", bold: true }, { text: "Within a few seconds the new key appears in the table. Click Copy next to it and store it securely — you will paste it into the integration instance." }]),
   p("Treat the API key like a password: store it in a secret manager and rotate it according to your organization's policy.", { italics: true, color: GRAY }),
 ];
 
 /* ---------------- 4. Install ---------------- */
+const step_install = newStep();
 const install = [
   h1("4. Install the Pack"),
-  step("In Cortex XSIAM/XSOAR, open Marketplace."),
-  step([{ text: "Search for " }, { text: "KOI", bold: true }, { text: " and open the pack." }]),
-  step("Click Install. The integration, parsing/modeling rules, and the dashboard are installed together."),
+  step_install("In Cortex XSIAM/XSOAR, open Marketplace."),
+  step_install([{ text: "Search for " }, { text: "KOI", bold: true }, { text: " and open the pack." }]),
+  step_install("Click Install. The integration, parsing/modeling rules, and the dashboard are installed together."),
 ];
 
 /* ---------------- 5. Configure ---------------- */
@@ -182,12 +205,13 @@ const configure = [
 ];
 
 /* ---------------- 6. Verify ---------------- */
+const step_verify = newStep();
 const verify = [
   h1("6. Verify the Setup"),
-  step("Click Test on the instance. A successful test confirms URL and API key."),
-  step("From the CLI / War Room, run a read-only command:"),
+  step_verify("Click Test on the instance. A successful test confirms URL and API key."),
+  step_verify("From the CLI / War Room, run a read-only command:"),
   code("!koi-devices-list limit=5"),
-  step("Confirm a device table is returned. If you enabled event collection, allow one fetch interval and check the dataset (section 8)."),
+  step_verify("Confirm a device table is returned. If you enabled event collection, allow one fetch interval and check the dataset (section 8)."),
 ];
 
 /* ---------------- 7. Commands ---------------- */
@@ -278,6 +302,7 @@ const dashboard = [
 ];
 
 /* ---------------- 10. Script Runner playbooks ---------------- */
+const step_playbooks = newStep();
 const playbooks = [
   h1("10. Koi Unified Script Runner Playbooks"),
   p("These three playbooks run KOI script packages (for example, the KOI deployment script) on Cortex-Agent endpoints on a recurring schedule. They are designed to be attached to a time-triggered Job and are configured entirely through a JSON List — retargeting or adding scripts never requires editing a playbook."),
@@ -332,9 +357,9 @@ const playbooks = [
   h2("10.4 How scripts are matched to endpoints"),
   p("The pairing of script to operating system is declared per entry, and enforced at dispatch time: each entry queries endpoints with the entry's groups/hostnames AND its endpoint_os as a platform filter, restricted to connected, unisolated agents. A Windows entry therefore can never execute on a Mac even when both target the same mixed endpoint group — and one shared group can serve every OS, with each entry picking out its own members."),
   h2("10.5 Job setup"),
-  step("Investigation & Response → Automation → Jobs → New Job."),
-  step([{ text: "Trigger: " }, { text: "Time triggered", bold: true }, { text: ", choose the recurrence (e.g., hourly)." }]),
-  step([{ text: "Playbook: " }, { text: "Koi Unified - Script Runner", bold: true }, { text: ". Save, then use Run now for an immediate first run." }]),
+  step_playbooks("Investigation & Response → Automation → Jobs → New Job."),
+  step_playbooks([{ text: "Trigger: " }, { text: "Time triggered", bold: true }, { text: ", choose the recurrence (e.g., hourly)." }]),
+  step_playbooks([{ text: "Playbook: " }, { text: "Koi Unified - Script Runner", bold: true }, { text: ". Save, then use Run now for an immediate first run." }]),
   h2("10.6 Run outcomes"),
   table([2200, 3800, 3360], [
     ["Outcome", "Meaning", "Notification"],
@@ -344,34 +369,80 @@ const playbooks = [
   ]),
 ];
 
-/* ---------------- 11. Deploy full pack via demisto-sdk ---------------- */
+/* ---------------- 11. Triage / investigation / response playbooks ---------------- */
+const step_triagePlaybooks = newStep();
+const triagePlaybooks = [
+  h1("11. Alert Triage, Investigation & Response Playbooks"),
+  p("A second, independent playbook set turns each KOI alert into an investigated, classified and — when you approve it — actioned case. Attach KOI - Alert Triage to your KOI alerts and the rest runs automatically."),
+  h2("11.1 The playbooks"),
+  table([3100, 6260], [
+    ["Playbook", "Role"],
+    ["KOI - Alert Triage", "Main. Extracts the alert context, runs the item and device investigations, computes a verdict, posts a summary, and routes: auto-close benign, escalate the rest, and open an analyst-gated block for Malicious."],
+    ["KOI - Extract Alert Context", "Sub. Parses the koi_context JSON embedded in the alert description into the KoiContext object."],
+    ["KOI - Investigate Item", "Sub. Full investigation of the flagged item (11.3)."],
+    ["KOI - Investigate Device", "Sub. Full investigation of the affected device (11.4)."],
+    ["KOI - Enrich Item", "Sub. Lightweight enrichment (catalog risk plus endpoint exposure) for callers that do not need the full investigation."],
+    ["KOI - Block and Remediate", "Investigates the item, skips it if already blocked, then adds it to the organization blocklist only after analyst approval."],
+    ["KOI - MCP Server Audit", "Scheduled hunt. Flags MCP servers at or above a risk threshold; attach to a time-triggered Job."],
+  ]),
+  h2("11.2 Triage flow and verdicts"),
+  p("The verdict is keyed on KOI's own alert type and risk level, with the independent Koidex catalog risk as a corroborating signal:"),
+  table([1800, 4560, 3000], [
+    ["Verdict", "Condition", "Action"],
+    ["Malicious", "Alert type is Removed from Marketplace, Publisher Compromised or Unvetted MCP Server; or KOI risk level is High or Critical; or the catalog risk is high/critical.", "Raise severity, then open an analyst-gated block for the item."],
+    ["Benign", "Alert type is New Item and KOI risk level is Low.", "Auto-close the alert as Resolved."],
+    ["Suspicious", "Anything else (safe default).", "Leave open for analyst review."],
+  ]),
+  h2("11.3 What the item investigation gathers"),
+  bullet("Catalog risk score and level, plus KOI's AI-generated risk summary."),
+  bullet("Your organization's own inventory record for the item: installs count, endpoint count, publisher, signing status and organization risk level."),
+  bullet("The endpoints the item is installed on and the users affected (resolved when the installed version is known)."),
+  bullet("Governance state — whether the item already appears on the organization blocklist."),
+  bullet("Remediation and approval history filtered to that item."),
+  h2("11.4 What the device investigation gathers"),
+  bullet("Every item installed on the affected device, with version, marketplace, publisher and install path."),
+  bullet("Which of those items are at or above the configured risk level (default: high, critical), posted as a risky-items table."),
+  bullet("Remediations recorded against that host."),
+  h2("11.5 Response safety"),
+  p("Adding an item to the blocklist is the only state-changing action in this set, and it is gated. KOI - Block and Remediate presents the full investigation to an analyst and writes only on approval; the triage always calls it with auto_block set to false, so a Malicious verdict can never block software without a human decision. Setting auto_block to true (only meaningful when you invoke the playbook directly) skips the gate — use with care."),
+  h2("11.6 Attaching the triage"),
+  step_triagePlaybooks("Ingest KOI alerts into Cortex (section 8) so each alert carries its koi_context payload."),
+  step_triagePlaybooks([{ text: "Attach " }, { text: "KOI - Alert Triage", bold: true }, { text: " as the playbook for KOI alerts, or run it on an existing alert from the CLI:" }]),
+  code('!setPlaybook playbookId="KOI - Alert Triage"'),
+  step_triagePlaybooks("Confirm in the war room: an item investigation summary, a device investigation summary, and a triage summary carrying the verdict."),
+  p("KOI - Investigate Item, KOI - Investigate Device and KOI - Block and Remediate declare required inputs, so they are designed to be called as sub-playbooks (or invoked by an analyst supplying those inputs) rather than attached directly to an alert.", { italics: true, color: GRAY }),
+];
+
+/* ---------------- 12. Deploy full pack via demisto-sdk ---------------- */
+const step_sdkDeploy = newStep();
 const sdkDeploy = [
-  h1("11. Deploying the Full Pack as a Single Object (demisto-sdk)"),
+  h1("12. Deploying the Full Pack as a Single Object (demisto-sdk)"),
   p("The pack can be delivered to a tenant as one artifact — a pack zip — using Palo Alto Networks' demisto-sdk. This is the recommended path for dev/test tenants and CI pipelines; production tenants normally install from the Marketplace."),
-  h2("11.1 One-time setup"),
-  step([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
-  step([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
-  step([{ text: "Set the connection environment variables: ", bold: true }, { text: "DEMISTO_BASE_URL", font: "Consolas", size: 20 }, { text: " (the api- URL of the tenant), " }, { text: "DEMISTO_API_KEY", font: "Consolas", size: 20 }, { text: ", and " }, { text: "XSIAM_AUTH_ID", font: "Consolas", size: 20 }, { text: " (the key's ID)." }]),
-  h2("11.2 Build and push"),
+  h2("12.1 One-time setup"),
+  step_sdkDeploy([{ text: "Install the SDK: ", bold: true }, { text: "pip3 install demisto-sdk", font: "Consolas", size: 20 }, { text: " (1.38+ required — older versions reject packs that declare the platform marketplace)." }]),
+  step_sdkDeploy([{ text: "Place the pack in a content-repo structure. ", bold: true }, { text: "demisto-sdk only runs inside a repo shaped like demisto/content: a git repository containing Packs/Koi/<pack contents>, an empty .private-repo-settings file at the root, and Tests/secrets_white_list.json containing {\"iocs\":[],\"files\":[],\"generic_strings\":[]}." }]),
+  step_sdkDeploy([{ text: "Set the connection environment variables: ", bold: true }, { text: "DEMISTO_BASE_URL", font: "Consolas", size: 20 }, { text: " (the api- URL of the tenant), " }, { text: "DEMISTO_API_KEY", font: "Consolas", size: 20 }, { text: ", and " }, { text: "XSIAM_AUTH_ID", font: "Consolas", size: 20 }, { text: " (the key's ID)." }]),
+  h2("12.2 Build and push"),
   p("Validate, build the single pack artifact, and upload:"),
   code("demisto-sdk validate -i Packs/Koi/Playbooks"),
   code("demisto-sdk zip-packs -i Packs/Koi -o zipped"),
   code("demisto-sdk upload -i Packs/Koi -z --xsiam"),
-  h2("11.3 Notes verified in practice"),
+  h2("12.3 Notes verified in practice"),
   bullet([{ text: "API key type matters. ", bold: true }, { text: "demisto-sdk sends the API key as-is, which works only with a Standard XSIAM API key. With an Advanced key the SDK cannot connect; in that case build the artifact with zip-packs and POST zipped/uploadable_packs/Koi.zip (multipart, field name \"file\") to https://api-<tenant>/xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true using the advanced-key signed headers. Note the endpoint is under /xsoar/, not /xsoar/public/v1/." }]),
   bullet([{ text: "API modules. ", bold: true }, { text: "The Koi integration imports ContentClientApiModule; the build inlines it from Packs/ApiModules/Scripts/ContentClientApiModule/ — copy that folder from the demisto/content repository into your content repo before running zip-packs." }]),
   bullet([{ text: "Pack items become system-owned. ", bold: true }, { text: "After a pack install, its items (playbooks, integration) are marked system and reject individual item uploads. Ship subsequent changes as a new pack version (bump currentVersion in pack_metadata.json, add a release note, re-upload the zip)." }]),
-  p("After upload, the pack appears in the tenant at the new version and every item (integration, playbooks, rules, dashboard) is installed together — see section 13 to validate."),
+  p("After upload, the pack appears in the tenant at the new version and every item (integration, playbooks, rules, dashboard) is installed together — see section 14 to validate."),
 ];
 
 /* ---------------- 11. Manual onboarding ---------------- */
 const manualOnboard = [
-  h1("12. Onboarding Individual Items Manually"),
+  h1("13. Onboarding Individual Items Manually"),
   p("If you prefer to adopt only part of the pack (or cannot use the SDK), each item can be onboarded by hand in the tenant UI. Import order matters where items reference each other by name."),
   table([2900, 6460], [
     ["Item", "How to onboard manually"],
     ["Integration (Koi.yml)", "Marketplace → install the KOI pack (recommended); or Settings → Configurations → Automation & Feed Integrations → Upload Integration and select the YAML."],
-    ["Playbooks (3 files)", "Investigation & Response → Automation → Playbooks → Import. Import in dependency order: 1) Koi Unified - Execute Endpoint Script, 2) Koi Unified - Process Config Entry, 3) Koi Unified - Script Runner — sub-playbook references bind by name."],
+    ["Playbooks — Script Runner (3 files)", "Investigation & Response → Automation → Playbooks → Import. Import in dependency order: 1) Koi Unified - Execute Endpoint Script, 2) Koi Unified - Process Config Entry, 3) Koi Unified - Script Runner — sub-playbook references bind by name."],
+    ["Playbooks — Triage & response (7 files)", "Same import screen. Import the sub-playbooks first (KOI - Extract Alert Context, KOI - Investigate Item, KOI - Investigate Device, KOI - Enrich Item), then KOI - Block and Remediate and KOI - MCP Server Audit, and finally KOI - Alert Triage. References bind by name."],
     ["Configuration List", "Settings → Configurations → Object Setup → Lists → New List. Name it exactly \"Koi Script Runner\", type JSON, and paste the configuration array (section 10.3)."],
     ["Job", "Investigation & Response → Automation → Jobs → New Job. Time-triggered, choose the \"Koi Unified - Script Runner\" playbook, set the recurrence."],
     ["Parsing / Modeling Rules", "XSIAM: Settings → Data Management → Parsing Rules (and Modeling Rules) → add the content of the pack's .xif files as user-defined rules targeting dataset koi_koi_raw."],
@@ -382,7 +453,7 @@ const manualOnboard = [
 
 /* ---------------- 12. Validation ---------------- */
 const validation = [
-  h1("13. Validating That Everything Works"),
+  h1("14. Validating That Everything Works"),
   p("Run these checks after any deployment (SDK, Marketplace, or manual). Each row gives the action and the evidence that proves the component is healthy."),
   table([2500, 3600, 3260], [
     ["Component", "How to validate", "Expected evidence"],
@@ -392,6 +463,8 @@ const validation = [
     ["Script Runner playbooks", "Jobs → select the job → Run now; open the run.", "Work Plan is all green; war room shows ScriptResult ok:true with an action_id per executed entry, and SKIPPED info entries for OS scopes with no endpoints."],
     ["Endpoint execution", "Action Center → All Actions → find the action_id.", "Status COMPLETED_SUCCESSFULLY on the expected endpoints."],
     ["Notifications", "Configure a mail-sender instance; re-run the job.", "Success/failure email arrives at the List's recipients; no send-mail errors in the war room."],
+    ["Alert triage playbooks", "Run KOI - Alert Triage on a KOI alert (attach it, or !setPlaybook).", "War room shows an item investigation summary, a device investigation summary, and a triage summary carrying the verdict; benign alerts auto-close, others escalate."],
+    ["Analyst-gated block", "Let a Malicious verdict reach the block step.", "The run parks at runStatus \"waiting\" on the approval task and koi-blocklist-items-add has NOT executed. It runs only after an analyst approves."],
     ["Dashboard", "Open Koi Alerts Dashboard.", "Widgets render data after the collector has ingested alerts."],
   ]),
   p("(a) Collector validation query:", { bold: true }),
@@ -402,7 +475,7 @@ const validation = [
 
 /* ---------------- 13. Troubleshooting ---------------- */
 const troubleshooting = [
-  h1("14. Troubleshooting"),
+  h1("15. Troubleshooting"),
   table([2900, 3000, 3460], [
     ["Symptom", "Likely cause", "Resolution"],
     ["\"Authorization Error: Verify your API Key\"", "Key invalid, revoked, or pasted with whitespace", "Re-create the key (Settings → API Access, xt-Administrator role) and update the instance."],
@@ -411,12 +484,13 @@ const troubleshooting = [
     ["Koidex commands return a 400 error", "Missing required arguments", "koi-koidex-search requires both marketplace and search_term; koi-koidex-risk-report requires item_id and marketplace."],
     ["Duplicate events after manual pulls", "koi-get-events was run with should_push_events=true", "Use koi-get-events for debugging only, and keep should_push_events=false."],
     ["HTTP 429 / rate limiting", "Fetch volume too aggressive", "Lower Maximum number of events per fetch or increase the fetch interval."],
+    ["HTTP 403 on inventory, users, Koidex or governance commands, while event collection keeps working", "KOI's edge is rejecting the source IP — typically a shared datacenter or cloud egress range", "Run the integration on a Cortex engine whose egress IP KOI accepts (for example a corporate/office network), or ask KOI to allowlist your egress. Confirm with !koi-users-list limit=1 — the same key succeeds from an accepted IP and returns 403 from a rejected one."],
   ]),
 ];
 
 /* ---------------- 11. Support ---------------- */
 const support = [
-  h1("15. Support & References"),
+  h1("16. Support & References"),
   bullet([{ text: "KOI product documentation: " }, { text: "https://docs.koi.ai", font: "Consolas", size: 20 }]),
   bullet("Pack release notes: see the KOI pack page in the Cortex Marketplace."),
   bullet("For issues with the integration content, contact your Palo Alto Networks / KOI support channel."),
@@ -451,7 +525,7 @@ const doc = new Document({
     children: [
       ...cover, ...toc, ...intro, ...prereq, ...apikey, ...install,
       ...configure, ...verify, ...commands, ...events, ...dashboard,
-      ...playbooks, ...sdkDeploy, ...manualOnboard, ...validation,
+      ...playbooks, ...triagePlaybooks, ...sdkDeploy, ...manualOnboard, ...validation,
       ...troubleshooting, ...support,
     ],
   }],

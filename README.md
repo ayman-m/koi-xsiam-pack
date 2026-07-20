@@ -14,6 +14,20 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
 | Koi Parsing / Modeling Rules | Normalize raw KOI events and map them to the Cortex Data Model (XDM) |
 | Koi Alerts Dashboard | Ready-made XSIAM dashboard for KOI alert activity |
 | Koi Unified Script Runner playbooks | Job-driven, List-configured execution of KOI scripts on Cortex-Agent endpoints (see `Playbooks/README.md`) |
+| Alert triage, investigation & response playbooks | Automatic triage of each KOI alert: item + device investigation, a data-driven verdict, and analyst-gated response (see below) |
+
+## What you can do with it
+
+| Capability | What you get |
+|---|---|
+| **Telemetry collection** | KOI Alerts + Audit logs into `koi_koi_raw`, normalized and mapped to XDM, queryable in XQL and visualized by the bundled dashboard |
+| **Asset & posture visibility** | Everything your workforce runs — browser extensions, IDE plugins, npm/PyPI packages, desktop apps, MCP servers and other agentic-AI assets — per item or per device, with KOI risk scoring |
+| **Threat intelligence** | Koidex catalog risk score, findings, compliance data and an AI-generated risk summary for any item |
+| **Automated triage** | Every alert classified Benign / Suspicious / Malicious from KOI's alert type and risk level plus the independent catalog risk — benign auto-closes, the rest escalate |
+| **Deep investigation** | Per item: catalog risk, AI summary, org exposure, affected endpoints & users, governance state, remediation/approval history. Per device: everything installed on the host and which of it is risky |
+| **Analyst-gated response** | A Malicious verdict opens a block approval showing the full investigation; the org-wide blocklist write happens only after a human approves |
+| **Proactive hunting** | Scheduled MCP-server audit flags risky agentic-AI assets without waiting for an alert |
+| **Fleet script execution** | Run KOI script packages on Cortex-Agent endpoints on a schedule, targeted by OS / group / hostname via a JSON List |
 
 ## Quick start
 
@@ -24,6 +38,8 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
    ```
    !koi-devices-list limit=5
    ```
+
+> **Egress matters.** KOI applies IP-based restrictions at its edge to the sensitive API endpoints (users, inventory, Koidex, governance). Requests from shared datacenter/cloud egress ranges can return **HTTP 403 even with a valid API key**, while the same key works from a corporate network. Event collection is unaffected. If your tenant egresses from a cloud range, run the integration on a **Cortex engine** whose egress IP KOI accepts. Confirm with `!koi-users-list limit=1`.
 
 ## Script Runner playbooks
 
@@ -56,6 +72,38 @@ Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_secon
 
 Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
 
+## Alert triage, investigation & response
+
+Attach **`KOI - Alert Triage`** to your KOI alerts and each one is investigated, classified and routed automatically:
+
+```
+alert → extract koi_context → item investigation → device investigation
+      → verdict → Benign: auto-close · Suspicious: leave open
+                 · Malicious: raise severity + open an analyst-gated block
+```
+
+| Playbook | Role |
+|---|---|
+| `KOI - Alert Triage` | Main. Orchestrates the flow above |
+| `KOI - Extract Alert Context` | Parses the embedded `koi_context` JSON into `KoiContext` |
+| `KOI - Investigate Item` | Catalog risk + AI summary, org exposure (installs/signing/publisher/endpoints), affected endpoints & users, blocklist state, remediation & approval history |
+| `KOI - Investigate Device` | Everything installed on the affected host, which of it is risky, plus host remediations |
+| `KOI - Enrich Item` | Lightweight enrichment (catalog risk + endpoint exposure) |
+| `KOI - Block and Remediate` | Investigates, skips already-blocked items, blocks org-wide **only after analyst approval** |
+| `KOI - MCP Server Audit` | Scheduled hunt for risky MCP servers |
+
+**Verdict logic** — keyed on KOI's own `alert_type` and `risk_level`, corroborated by the independent Koidex catalog risk:
+
+| Verdict | Condition | Action |
+|---|---|---|
+| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity + analyst-gated block |
+| **Benign** | `alert_type` = New Item **and** `risk_level` = Low | Auto-close (Resolved) |
+| **Suspicious** | anything else (safe default) | Leave open for the analyst |
+
+> **Response safety.** `koi-blocklist-items-add` is the only state-changing action, and it is gated: triage always calls `KOI - Block and Remediate` with `auto_block=false`, so a Malicious verdict parks on an approval task and can never block software without a human decision.
+
+Details in [`Playbooks/README.md`](Playbooks/README.md) and §11 of the customer guide.
+
 ## Deploying this pack to a tenant
 
 **As a single object (recommended for dev/test):** upload `dist/Koi.zip` — either via demisto-sdk:
@@ -83,7 +131,22 @@ To rebuild the zip from source: place this pack at `Packs/Koi/` inside a content
 | Job → **Run now** → open the run | Work Plan green; `ScriptResult ok:true` + `action_id` per executed entry; `SKIPPED` info entries for OS scopes with no endpoints |
 | Action Center → the `action_id` | `COMPLETED_SUCCESSFULLY` on the expected endpoints |
 | Koi Alerts Dashboard | Widgets render after ingestion |
+| Run `KOI - Alert Triage` on a KOI alert | War room shows an item investigation summary, a device investigation summary, and a triage summary with the verdict |
+| Let a Malicious verdict reach the block step | Run parks at `runStatus: waiting` on the approval task and `koi-blocklist-items-add` has **not** executed |
 
-The full customer guide (setup, all commands, troubleshooting) lives at
-[`docs/KOI_Integration_Customer_Guide_v1.3.0.docx`](docs/KOI_Integration_Customer_Guide_v1.3.0.docx)
-(regenerate with [`docs/build_guide.js`](docs/build_guide.js)).
+## Documentation
+
+The full customer guide — install, configure, all commands, capabilities, the triage/investigation playbooks, validation and troubleshooting:
+
+| Format | File |
+|---|---|
+| Word | [`docs/KOI_Integration_Customer_Guide_v1.3.0.docx`](docs/KOI_Integration_Customer_Guide_v1.3.0.docx) |
+| PDF | [`docs/KOI_Integration_Customer_Guide_v1.3.0.pdf`](docs/KOI_Integration_Customer_Guide_v1.3.0.pdf) |
+
+Regenerate both after editing the content:
+
+```bash
+cd docs
+node build_guide.js     # content lives here → rebuilds the .docx   (needs the `docx` npm package)
+python3 build_pdf.py    # renders the .docx → styled .pdf           (needs pandoc + wkhtmltopdf)
+```
