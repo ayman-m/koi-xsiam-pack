@@ -71,15 +71,14 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     x: x + 0.18, y: y + 0.16, w: w - 0.36, h: 0.34,
     fontSize: 13, bold: true, color: WHITE, fontFace: F, margin: 0,
   });
+  // the noteworthy box in each flow is marked by colouring its own text, not by an
+  // accent bar — an edge stripe adds no meaning and reads as filler
   if (sub)
     s.addText(sub, {
       x: x + 0.18, y: y + 0.52, w: w - 0.36, h: h - 0.68,
-      fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 14,
+      fontSize: 10.5, color: accent === CYAN ? CYAN : BODY, fontFace: F,
+      margin: 0, lineSpacing: 14, valign: "top",
     });
-  s.addShape(pres.ShapeType.roundRect, {
-    x: x + 0.18, y: y + h - 0.28, w: 0.5, h: 0.06,
-    fill: { color: accent }, line: { color: accent, width: 0 }, rectRadius: 0.03,
-  });
 };
 
 /* ============================ 1. Title ============================ */
@@ -162,23 +161,28 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     s.addText(d, { x: M + 0.86, y: y + 0.46, w: lw - 1.1, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0 });
   });
   // right panel
+  // panel bottom (1.72 + 5.00) matches the last left-hand card, so the two columns align
   const px = M + lw + 0.4, pw = W - lw - 0.4;
-  card(s, px, 1.72, pw, 5.15, CARD_HI);
+  card(s, px, 1.72, pw, 5.00, CARD_HI);
   s.addText("Two independent automation tracks", {
-    x: px + 0.3, y: 1.98, w: pw - 0.6, h: 0.6, fontSize: 15, bold: true, color: WHITE, fontFace: F, margin: 0, lineSpacing: 20,
+    x: px + 0.3, y: 1.98, w: pw - 0.6, h: 0.4, fontSize: 15, bold: true, color: WHITE, fontFace: F, margin: 0,
   });
-  s.addText(
-    [
-      { text: "Detect & respond", options: { bold: true, color: ORANGE, fontSize: 12.5, breakLine: true } },
-      { text: "Each KOI alert is triaged, investigated and routed — with response gated on an analyst.", options: { color: BODY, fontSize: 11, breakLine: true } },
-      { text: " ", options: { fontSize: 8, breakLine: true } },
-      { text: "Operate at fleet scale", options: { bold: true, color: CYAN, fontSize: 12.5, breakLine: true } },
-      { text: "Run KOI script packages on Cortex-Agent endpoints on a schedule, targeted by OS, group or hostname.", options: { color: BODY, fontSize: 11 } },
-    ],
-    { x: px + 0.3, y: 2.7, w: pw - 0.6, h: 2.6, fontFace: F, margin: 0, lineSpacing: 15 }
-  );
+  // each track is its own inner card: fills the panel instead of leaving it hollow
+  const tracks = [
+    ["Detect & respond", ORANGE, "Each KOI alert is triaged, investigated and routed — with response gated on an analyst.",
+      "Seven playbooks: triage, two investigations, enrichment, response and hunting."],
+    ["Operate at fleet scale", CYAN, "Run KOI script packages on Cortex-Agent endpoints on a schedule, targeted by OS, group or hostname.",
+      "Three playbooks, configured entirely through a JSON List."],
+  ];
+  tracks.forEach(([t, c, body, detail], i) => {
+    const ty = 2.55 + i * 1.90;
+    card(s, px + 0.28, ty, pw - 0.56, 1.75, CARD);
+    s.addText(t, { x: px + 0.52, y: ty + 0.20, w: pw - 1.04, h: 0.28, fontSize: 12.5, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    s.addText(body, { x: px + 0.52, y: ty + 0.54, w: pw - 1.04, h: 0.6, fontSize: 11, color: BODY, fontFace: F, margin: 0, lineSpacing: 14, valign: "top" });
+    s.addText(detail, { x: px + 0.52, y: ty + 1.16, w: pw - 1.04, h: 0.46, fontSize: 10, color: MUTED, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+  });
   s.addText("Everything installs together as one pack.", {
-    x: px + 0.3, y: 6.2, w: pw - 0.6, h: 0.4, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0,
+    x: px + 0.3, y: 6.30, w: pw - 0.6, h: 0.28, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
   s.addNotes("Five component groups. The two playbook suites solve different problems: alert-driven response, and scheduled fleet execution.");
 }
@@ -213,7 +217,11 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
 {
   const s = newSlide();
   heading(s, "Architecture", "How it flows");
-  const bw = 2.18, by = 1.95, bh = 1.5;
+  // both tracks carry a label — leaving the first unlabelled read as an omission
+  s.addText("Telemetry pipeline", {
+    x: M, y: 1.58, w: W, h: 0.3, fontSize: 12, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top",
+  });
+  const bw = 2.18, by = 1.98, bh = 1.5;
   const boxes = [
     ["KOI API", "Alerts, audit,\ninventory, Koidex"],
     ["Integration", "Runs on tenant\nor a Cortex engine"],
@@ -281,7 +289,8 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
       x: x + 0.28, y: 3.9, w: 1.42, h: 0.34, fill: { color: c }, line: { color: c, width: 0 }, rectRadius: 0.08,
     });
     s.addText(t, { x: x + 0.28, y: 3.9, w: 1.42, h: 0.34, align: "center", valign: "middle", fontSize: 11.5, bold: true, color: "000000", fontFace: F, margin: 0 });
-    s.addText(cond, { x: x + 0.28, y: 4.42, w: vw - 0.56, h: 1.1, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13 });
+    // top-anchored so the three conditions start on the same line regardless of length
+    s.addText(cond, { x: x + 0.28, y: 4.42, w: vw - 0.56, h: 1.1, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
     s.addText(act, { x: x + 0.28, y: 5.6, w: vw - 0.56, h: 0.6, fontSize: 10.5, bold: true, color: WHITE, fontFace: F, margin: 0, lineSpacing: 13 });
   });
   s.addNotes("Verdict is keyed on KOI's own alert type and risk level, corroborated by the independent Koidex catalog risk — so a benign-looking alert on a high-risk package still escalates.");
@@ -299,25 +308,27 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
       "The endpoints it is installed on, and the users affected",
       "Governance state — is it already on the blocklist?",
       "Remediation and prior-approval history for the item",
-    ]],
+    ], "Runs inside triage, and standalone for an ad-hoc item lookup."],
     ["Device investigation", CYAN, "What else is on the affected host?", [
       "Every item installed on the device, with version and path",
       "Which of those sit at or above your risk threshold",
       "Marketplace, publisher and install location per item",
       "Remediations recorded against that host",
       "Turns a single alert into full host posture",
-    ]],
+    ], "Runs inside triage, or on any device id you hand it."],
   ];
-  panels.forEach(([t, c, sub, list], i) => {
+  panels.forEach(([t, c, sub, list, foot], i) => {
     const x = M + i * (cw + 0.45);
-    card(s, x, 1.66, cw, 5.15);
+    card(s, x, 1.66, cw, 4.85);
     chip(s, x + 0.32, 1.98, i === 0 ? "I" : "D", c);
     s.addText(t, { x: x + 0.92, y: 1.96, w: cw - 1.2, h: 0.36, fontSize: 17, bold: true, color: WHITE, fontFace: F, margin: 0 });
-    s.addText(sub, { x: x + 0.32, y: 2.52, w: cw - 0.64, h: 0.34, fontSize: 11.5, italic: true, color: c, fontFace: F, margin: 0 });
+    s.addText(sub, { x: x + 0.32, y: 2.52, w: cw - 0.64, h: 0.34, fontSize: 11.5, italic: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    // top-anchored: a centred list floats in the middle of the card and opens a void under the sub-head
     s.addText(
       list.map((li, k) => ({ text: li, options: { bullet: true, breakLine: k < list.length - 1 } })),
-      { x: x + 0.34, y: 3.0, w: cw - 0.68, h: 3.5, fontSize: 11.5, color: BODY, fontFace: F, margin: 0, paraSpaceAfter: 10, lineSpacing: 15 }
+      { x: x + 0.34, y: 2.95, w: cw - 0.68, h: 2.4, fontSize: 11.5, color: BODY, fontFace: F, margin: 0, paraSpaceAfter: 16, lineSpacing: 15, valign: "top" }
     );
+    s.addText(foot, { x: x + 0.34, y: 5.72, w: cw - 0.68, h: 0.5, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
   });
   s.addNotes("The item investigation answers what and where; the device investigation answers what else is on that host. Together they give the analyst the full picture before any decision.");
 }
@@ -401,23 +412,24 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
   const cw = (W - 0.7) / 3;
   cols.forEach(([n, t, c, list], i) => {
     const x = M + i * (cw + 0.35);
-    card(s, x, 1.7, cw, 3.35);
+    card(s, x, 1.7, cw, 2.85);
     chip(s, x + 0.3, 1.98, n, c);
     s.addText(t, { x: x + 0.9, y: 1.96, w: cw - 1.2, h: 0.36, fontSize: 16, bold: true, color: WHITE, fontFace: F, margin: 0 });
+    // top-anchored, so a column whose bullet wraps still starts level with the others
     s.addText(
       list.map((li, k) => ({ text: li, options: { bullet: true, breakLine: k < list.length - 1 } })),
-      { x: x + 0.32, y: 2.52, w: cw - 0.64, h: 2.3, fontSize: 11, color: BODY, fontFace: F, margin: 0, paraSpaceAfter: 9, lineSpacing: 14 }
+      { x: x + 0.32, y: 2.52, w: cw - 0.64, h: 1.9, fontSize: 11, color: BODY, fontFace: F, margin: 0, paraSpaceAfter: 22, lineSpacing: 14, valign: "top" }
     );
   });
-  card(s, M, 5.25, W, 1.55, CARD_HI);
-  s.addText("Then prove it works", { x: M + 0.32, y: 5.42, w: 4.0, h: 0.32, fontSize: 13, bold: true, color: WHITE, fontFace: F, margin: 0 });
+  card(s, M, 4.80, W, 1.55, CARD_HI);
+  s.addText("Then prove it works", { x: M + 0.32, y: 4.97, w: 4.0, h: 0.32, fontSize: 13, bold: true, color: WHITE, fontFace: F, margin: 0 });
   s.addText(
     [
       { text: "!koi-devices-list limit=5", options: { fontFace: MONO, color: CYAN, fontSize: 11, breakLine: true } },
       { text: "dataset = koi_koi_raw | comp count() as events by source_log_type", options: { fontFace: MONO, color: CYAN, fontSize: 11, breakLine: true } },
       { text: "Attach KOI - Alert Triage to a KOI alert and confirm the investigation summaries and verdict appear in the war room.", options: { color: BODY, fontSize: 11 } },
     ],
-    { x: M + 0.32, y: 5.78, w: W - 0.64, h: 0.95, fontFace: F, margin: 0, lineSpacing: 15 }
+    { x: M + 0.32, y: 5.33, w: W - 0.64, h: 0.95, fontFace: F, margin: 0, lineSpacing: 15, valign: "top" }
   );
   s.addNotes("Three install paths. Validation: connectivity, collector, and a triage run end to end.");
 }
@@ -457,8 +469,10 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
 /* ============================ 12. Close ============================ */
 {
   const s = newSlide();
+  // bleeds off the top-right corner: the bottom-left placement cut through the first
+  // link card and ran into the footer line
   s.addShape(pres.ShapeType.ellipse, {
-    x: -1.8, y: 3.6, w: 5.6, h: 5.6,
+    x: 10.2, y: -2.2, w: 5.4, h: 5.4,
     fill: { color: ORANGE, transparency: 92 }, line: { color: ORANGE, width: 1 },
   });
   s.addText("WHERE TO GO NEXT", {
