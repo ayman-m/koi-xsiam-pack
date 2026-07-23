@@ -783,8 +783,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 807,
-          "y": 960
+          "x": 1227,
+          "y": 1145
         }
       }
     note: false
@@ -819,8 +819,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 1032,
-          "y": 1885
+          "x": 1227,
+          "y": 1330
         }
       }
     note: false

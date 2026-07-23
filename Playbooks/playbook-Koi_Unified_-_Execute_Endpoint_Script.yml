@@ -986,7 +986,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - "11"
+      - '23'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -1044,8 +1044,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 1770,
-          "y": 1885
+          "x": 1985,
+          "y": 1500
         }
       }
     note: false
@@ -1087,8 +1087,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 1985,
-          "y": 1330
+          "x": 2420,
+          "y": 1885
         }
       }
     note: false
@@ -1146,8 +1146,8 @@ tasks:
     view: |-
       {
         "position": {
-          "x": 1770,
-          "y": 1885
+          "x": 2420,
+          "y": 2070
         }
       }
     note: false
@@ -1186,7 +1186,7 @@ tasks:
       {
         "position": {
           "x": 1770,
-          "y": 1885
+          "y": 2255
         }
       }
     note: false
