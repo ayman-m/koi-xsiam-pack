@@ -327,6 +327,16 @@ tasks:
         simple: connected
       isolate:
         simple: unisolated
+      limit:
+        complex:
+          root: inputs.max_endpoints
+          transformers:
+          - operator: SetIfEmpty
+            args:
+              applyIfEmpty: {}
+              defaultValue:
+                value:
+                  simple: '500'
     nexttasks:
       '#error#':
       - "15"
@@ -386,7 +396,7 @@ tasks:
       '#default#':
       - "16"
       "yes":
-      - "8"
+      - '20'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -501,7 +511,7 @@ tasks:
           root: lastCompletedTaskEntries
     nexttasks:
       '#none#':
-      - "17"
+      - '21'
     separatecontext: false
     continueonerror: true
     continueonerrortype: ""
@@ -599,7 +609,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - "11"
+      - '23'
     separatecontext: false
     continueonerror: true
     continueonerrortype: ""
@@ -966,7 +976,7 @@ tasks:
                   simple: |-
                     {
                       "ok": false,
-                      "reason": "Script execution failed (core-script-run) — see the error entries in the run's war room."
+                      "reason": "Script execution could not be dispatched (core-script-run returned an error and no action was created). See the error entries in the run's war room."
                     }
               template_type:
                 value:
@@ -983,6 +993,199 @@ tasks:
       {
         "position": {
           "x": 2200,
+          "y": 1885
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '20':
+    id: "20"
+    taskid: c0ffee03-0000-4000-8000-000000000020
+    type: regular
+    task:
+      id: c0ffee03-0000-4000-8000-000000000020
+      version: -1
+      name: Record targeted endpoint count
+      description: Captures how many connected endpoints this run dispatches to, for reporting.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: koi_target_count
+      value:
+        complex:
+          root: Core.Endpoint
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Core.Endpoint.endpoint_status
+              operator: isEqualString
+              right:
+                value:
+                  simple: CONNECTED
+          accessor: endpoint_id
+          transformers:
+          - operator: count
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - '8'
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 1770,
+          "y": 1885
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '21':
+    id: "21"
+    taskid: c0ffee03-0000-4000-8000-000000000021
+    type: condition
+    task:
+      id: c0ffee03-0000-4000-8000-000000000021
+      version: -1
+      name: Was the action dispatched?
+      description: core-script-run dispatches the action and then polls it. If an action_id exists the script IS running on the endpoints and only the poll expired — that is not an execution failure and must not raise a failure notification.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: Core.ScriptRun.action_id
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '17'
+      "yes":
+      - '22'
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 1985,
+          "y": 1330
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '22':
+    id: "22"
+    taskid: c0ffee03-0000-4000-8000-000000000022
+    type: regular
+    task:
+      id: c0ffee03-0000-4000-8000-000000000022
+      version: -1
+      name: Set ScriptResult - Polling timed out
+      description: The action was dispatched and is still running in Action Center; only the playbook's poll expired.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: ScriptResult
+      value:
+        complex:
+          root: .
+          transformers:
+          - operator: FormatTemplate
+            args:
+              ctx_data: {}
+              ctx_inc: {}
+              ctx_inputs: {}
+              keep_symbol_to_null: {}
+              template:
+                value:
+                  simple: |-
+                    {
+                      "ok": false,
+                      "timed_out": true,
+                      "reason": "Script was dispatched successfully but the playbook stopped polling before the action finished. The action is still running in Action Center and is expected to complete on its own. This is NOT an execution failure."
+                    }
+              template_type:
+                value:
+                  simple: json
+              variable_markers: {}
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - '19'
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 1770,
+          "y": 1885
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '23':
+    id: "23"
+    taskid: c0ffee03-0000-4000-8000-000000000023
+    type: regular
+    task:
+      id: c0ffee03-0000-4000-8000-000000000023
+      version: -1
+      name: Record endpoint count
+      description: Records the number of endpoints targeted.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: ScriptResult.endpoint_count
+      value:
+        simple: ${koi_target_count}
+      append:
+        simple: "false"
+    nexttasks:
+      '#none#':
+      - '11'
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 1770,
           "y": 1885
         }
       }
@@ -1010,39 +1213,45 @@ inputs:
   value: {}
   required: false
   description: The name of the script to execute, as shown in the Action Center Script Library. Ignored when script_uuid is provided.
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: script_uuid
   value: {}
   required: false
   description: The UUID of the script to execute. Takes precedence over script_name.
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: endpoint_os
   value: {}
   required: true
   description: Target OS platform (Windows, macOS, or Linux — case-insensitive).
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: endpoint_groups
   value: {}
   required: false
   description: Endpoint group names to limit execution to. Either this or endpoint_hostnames must be provided.
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: endpoint_hostnames
   value: {}
   required: false
   description: Endpoint hostnames to limit execution to. Either this or endpoint_groups must be provided.
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: polling_interval_in_seconds
   value:
     simple: "60"
   required: false
   description: How often to poll for script completion (seconds).
-  playbookInputQuery: null
+  playbookInputQuery:
 - key: timeout_in_seconds
   value:
     simple: "1800"
   required: false
   description: Overall timeout for the script execution (seconds).
-  playbookInputQuery: null
+  playbookInputQuery:
+- key: max_endpoints
+  value:
+    simple: "500"
+  required: false
+  description: Maximum number of endpoints to retrieve and target in one run. core-get-endpoints returns only 30 when no limit is given, which silently caps every run at 30 endpoints no matter how many are in the group. Raise for large groups, but keep at or below the per-action endpoint cap your tenant accepts for core-script-run.
+  playbookInputQuery:
 outputs:
 - contextPath: ScriptResult
   description: The structured result of the script execution.
@@ -1059,6 +1268,12 @@ outputs:
 - contextPath: ScriptResult.action_id
   description: The Action Center action ID of the script execution (on success).
   type: string
+- contextPath: ScriptResult.timed_out
+  description: 'True when the action was dispatched but the playbook''s poll expired. Not a failure.'
+  type: boolean
+- contextPath: ScriptResult.endpoint_count
+  description: 'Number of connected endpoints this run targeted.'
+  type: boolean
 tags:
 - koi
 quiet: false

@@ -44,6 +44,12 @@ Required per entry: `script.name` **or** `script.uuid`, `target.endpoint_os`,
 and at least one of `target.endpoint_groups` / `target.endpoint_hostnames`.
 Everything else is optional.
 
+> **`target.max_endpoints`** (optional, default 500) caps how many endpoints one run targets.
+> It is passed to `core-get-endpoints` as `limit`. **Do not omit this on large groups** — without
+> a limit the command returns only its default 30 endpoints, so a 1000-endpoint group is scanned
+> 30 at a time and most endpoints are never reached. Keep the value at or below the per-action
+> endpoint cap your tenant accepts for `core-script-run`.
+
 ## What was taken from each source
 
 | Source | Kept |

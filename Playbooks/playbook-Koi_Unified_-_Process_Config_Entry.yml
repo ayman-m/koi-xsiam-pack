@@ -255,6 +255,8 @@ tasks:
         simple: ${inputs.config_entry.script.polling_interval_in_seconds}
       timeout_in_seconds:
         simple: ${inputs.config_entry.script.timeout_in_seconds}
+      max_endpoints:
+        simple: ${inputs.config_entry.target.max_endpoints}
     loop:
       iscommand: false
       exitCondition: ""
@@ -303,7 +305,7 @@ tasks:
             value: {}
     nexttasks:
       '#default#':
-      - "5"
+      - '26'
       "yes":
       - "25"
     separatecontext: false
@@ -457,7 +459,7 @@ tasks:
       key:
         simple: koi_mail.subject
       value:
-        simple: '[Koi Script Runner] FAILURE: ${inputs.config_entry.script.name} (${inputs.config_entry.target.endpoint_os})'
+        simple: '[Koi Script Runner] FAILED TO DISPATCH: ${inputs.config_entry.script.name} (${inputs.config_entry.target.endpoint_os})'
       append:
         simple: "false"
     nexttasks:
@@ -631,7 +633,21 @@ tasks:
       key:
         simple: koi_mail.body
       value:
-        simple: 'The Koi script "${inputs.config_entry.script.name}" completed successfully on the "${inputs.config_entry.target.endpoint_os}" targets (groups: ${inputs.config_entry.target.endpoint_groups}, hostnames: ${inputs.config_entry.target.endpoint_hostnames}). Action ID: ${ScriptResult.action_id}'
+        simple: 'The Koi script "${inputs.config_entry.script.name}" completed successfully.
+
+
+          OS scope        : ${inputs.config_entry.target.endpoint_os}
+
+          Groups          : ${inputs.config_entry.target.endpoint_groups}
+
+          Hostnames       : ${inputs.config_entry.target.endpoint_hostnames}
+
+          Endpoints run on: ${ScriptResult.endpoint_count}
+
+          Action ID       : ${ScriptResult.action_id}
+
+
+          Open Action Center and filter by the Action ID above for the per-endpoint outcome.'
       append:
         simple: "false"
     nexttasks:
@@ -670,7 +686,23 @@ tasks:
       key:
         simple: koi_mail.body
       value:
-        simple: 'The Koi script "${inputs.config_entry.script.name}" FAILED for the "${inputs.config_entry.target.endpoint_os}" targets (groups: ${inputs.config_entry.target.endpoint_groups}, hostnames: ${inputs.config_entry.target.endpoint_hostnames}). Reason: ${ScriptResult.reason}'
+        simple: 'The Koi script "${inputs.config_entry.script.name}" could not be dispatched.
+
+
+          OS scope        : ${inputs.config_entry.target.endpoint_os}
+
+          Groups          : ${inputs.config_entry.target.endpoint_groups}
+
+          Hostnames       : ${inputs.config_entry.target.endpoint_hostnames}
+
+          Endpoints found : ${ScriptResult.endpoint_count}
+
+          Action ID       : ${ScriptResult.action_id}
+
+          Reason          : ${ScriptResult.reason}
+
+
+          No action was created. An action that WAS created but is still running does not produce this email — it is logged in the run instead.'
       append:
         simple: "false"
     nexttasks:
@@ -719,6 +751,85 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
+  '26':
+    id: "26"
+    taskid: c0ffee02-0000-4000-8000-000000000026
+    type: condition
+    task:
+      id: c0ffee02-0000-4000-8000-000000000026
+      version: -1
+      name: Did polling time out (action still running)?
+      description: A timed-out poll means the action was dispatched and is still running in Action Center. It is not an execution failure, so no failure notification is sent.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: ScriptResult.timed_out
+          operator: isTrue
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - '5'
+      "yes":
+      - '27'
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 807,
+          "y": 960
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '27':
+    id: "27"
+    taskid: c0ffee02-0000-4000-8000-000000000027
+    type: regular
+    task:
+      id: c0ffee02-0000-4000-8000-000000000027
+      version: -1
+      name: Log still-running entry
+      description: Records an informational entry when the action outlived the playbook's poll.
+      iscommand: false
+      brand: ""
+      script: Print
+      type: regular
+    scriptarguments:
+      value:
+        simple: 'Koi Script Runner: STILL RUNNING "${inputs.config_entry.script.name}" — dispatched to ${ScriptResult.endpoint_count} ${inputs.config_entry.target.endpoint_os} endpoint(s); Action ID ${ScriptResult.action_id}. The playbook stopped polling before the action finished; it is still running in Action Center. No failure notification sent.'
+    nexttasks:
+      '#none#':
+      - '10'
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 1032,
+          "y": 1885
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
 view: |-
   {
     "linkLabelsPosition": {},
@@ -736,7 +847,7 @@ inputs:
   value: {}
   required: true
   description: 'One entry of the Koi Script Runner configuration. Required nodes: script.name (or script.uuid), target.endpoint_os, and target.endpoint_groups or target.endpoint_hostnames. Optional: disabled, script.polling_interval_in_seconds, script.timeout_in_seconds, notification.recipients, notification.sendmail_instance.name.'
-  playbookInputQuery: null
+  playbookInputQuery:
 outputs: []
 tags:
 - koi
