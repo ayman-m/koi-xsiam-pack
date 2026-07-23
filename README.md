@@ -61,7 +61,7 @@ Each List entry couples one script with one OS scope — enforced at dispatch ti
 ]
 ```
 
-Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800), `target.max_endpoints` (500). Run outcomes are three-state: **ok** (executed, `action_id` returned, success email), **skipped** (no connected endpoints match the scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
+Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800), `target.max_endpoints` (100). Run outcomes are three-state: **ok** (executed, `action_id` returned, success email), **skipped** (no connected endpoints match the scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
 
 **Before the first run — referenced by name, NOT shipped in this pack.** Create these on the tenant first, with names matching the List exactly:
 
@@ -70,7 +70,7 @@ Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_secon
 - **The List** — named exactly `Koi Script Runner`
 - **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
 
-> **Large groups need `target.max_endpoints`.** `core-get-endpoints` returns only **30** endpoints when no limit is given, so without this field a 1000-endpoint group is scanned 30 at a time and most endpoints are never reached. The pack sets it to 500 by default; keep it at or below the per-action endpoint cap your tenant accepts for `core-script-run`.
+> **Large groups need `target.max_endpoints`.** `core-get-endpoints` returns only **30** endpoints when no limit is given, so without this field a 1000-endpoint group is scanned 30 at a time and most endpoints are never reached. **`core-get-endpoints` rejects any `limit` above 100** (HTTP 500), so the pack caps this at 100 — over 3x the silent default of 30. Covering a group larger than 100 in one run needs endpoint-query pagination, a separate change.
 
 Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
 

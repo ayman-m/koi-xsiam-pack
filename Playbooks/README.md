@@ -45,10 +45,9 @@ and at least one of `target.endpoint_groups` / `target.endpoint_hostnames`.
 Everything else is optional.
 
 > **`target.max_endpoints`** (optional, default 500) caps how many endpoints one run targets.
-> It is passed to `core-get-endpoints` as `limit`. **Do not omit this on large groups** — without
-> a limit the command returns only its default 30 endpoints, so a 1000-endpoint group is scanned
-> 30 at a time and most endpoints are never reached. Keep the value at or below the per-action
-> endpoint cap your tenant accepts for `core-script-run`.
+> It is passed to `core-get-endpoints` as `limit`, default **100** (the verified maximum — the
+> command returns HTTP 500 above 100). Without it the command returns only 30. Covering a group
+> larger than 100 in one run requires paginating the endpoint query, a separate change.
 
 ## What was taken from each source
 
