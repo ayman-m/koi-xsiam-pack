@@ -14,6 +14,7 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
 | Koi Parsing / Modeling Rules | Normalize raw KOI events and map them to the Cortex Data Model (XDM) |
 | Koi Alerts Dashboard | Ready-made XSIAM dashboard for KOI alert activity |
 | Koi Unified Script Runner playbooks | Job-driven, List-configured execution of KOI scripts on Cortex-Agent endpoints (see `Playbooks/README.md`) |
+| `KoiScanTracker` automation | Scan-coverage ledger (a CSV List) that lets the Script Runner cover endpoint groups larger than the 100-endpoint `core-get-endpoints` cap. Ships in the pack under `Scripts/`; requires the **Core REST API** integration |
 | Alert triage, investigation & response playbooks | Automatic triage of each KOI alert: item + device investigation, a data-driven verdict, and analyst-gated response (see below) |
 
 ## What you can do with it
@@ -70,7 +71,7 @@ Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_secon
 - **The List** — named exactly `Koi Script Runner`
 - **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
 
-> **Large groups need `target.max_endpoints`.** `core-get-endpoints` returns only **30** endpoints when no limit is given, so without this field a 1000-endpoint group is scanned 30 at a time and most endpoints are never reached. **`core-get-endpoints` rejects any `limit` above 100** (HTTP 500), so the pack caps this at 100 — over 3x the silent default of 30. Covering a group larger than 100 in one run needs endpoint-query pagination, a separate change.
+> **Large groups (over 100 endpoints) — use the scan-coverage tracker.** `core-get-endpoints` rejects any `limit` above 100 (HTTP 500) and `core-script-run` requires explicit endpoint ids, so a single run cannot cover a bigger group. The `KoiScanTracker` automation solves this: a **Refresh** job enumerates the whole group (paged past 100 via the Core REST API) into a per-scope tracker List, and each **Scan** run takes up to 100 endpoints that are *due* — never scanned, or `last_scan` older than `target.rescan_interval_hours` — runs the script, and marks them. Over successive runs the whole fleet is covered, then re-scanned each interval. Requires the **Core REST API** integration. New per-entry List fields: `target.tracker_list` and `target.rescan_interval_hours` (default 720). See `ReleaseNotes/1_5_0.md`.
 
 Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
 
