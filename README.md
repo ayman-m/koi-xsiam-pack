@@ -214,7 +214,7 @@ The full customer guide — install, configure, all commands, capabilities, the 
 
 | Document | What it is | Formats |
 |---|---|---|
-| **Customer guide** | Install, configure, all 26 commands, capabilities, the playbooks, validation and troubleshooting | [Word](docs/KOI_Integration_Customer_Guide_v1.3.0.docx) · [PDF](docs/KOI_Integration_Customer_Guide_v1.3.0.pdf) |
+| **Customer guide** | Install, configure, all 26 commands, capabilities, the playbooks, validation and troubleshooting | [Word](docs/KOI_Integration_Customer_Guide_v1.4.0.docx) · [PDF](docs/KOI_Integration_Customer_Guide_v1.4.0.pdf) |
 | **Overview deck** | 12-slide introduction to the pack, for briefings and demos | [PPTX](docs/KOI_Content_Pack_Overview.pptx) · [PDF](docs/KOI_Content_Pack_Overview.pdf) |
 | **Test guide** | Requirements, install and nine tests with steps and expected results | [PPTX](docs/KOI_Content_Pack_Test_Guide.pptx) · [PDF](docs/KOI_Content_Pack_Test_Guide.pdf) |
 | **Troubleshooting guide** | Diagnostic channels, KOI's on-disk file map, how each data point is collected, and symptom/cause/fix | [Word](docs/KOI_Troubleshooting_Guide_v1.0.docx) · [PDF](docs/KOI_Troubleshooting_Guide_v1.0.pdf) |

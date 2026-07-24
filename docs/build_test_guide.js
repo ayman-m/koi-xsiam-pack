@@ -695,7 +695,7 @@ testSlide("Test 9", "Script Runner job",
     x: M + cw + 0.62, y: 1.72 + 4 * 0.78 + 0.16, w: cw - 0.44, h: 0.4,
     fontSize: 11, bold: true, italic: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
   });
-  s.addText("Full detail for every step is in the customer guide — KOI_Integration_Customer_Guide_v1.3.0 (Word and PDF).", {
+  s.addText("Full detail for every step is in the customer guide — KOI_Integration_Customer_Guide_v1.4.0 (Word and PDF).", {
     x: M, y: 6.35, w: W, h: 0.3, fontSize: 11, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
   s.addNotes("Test 7 is the gate. The other eight can be re-run any time; test 7 should be re-run after any change to the response playbook.");
