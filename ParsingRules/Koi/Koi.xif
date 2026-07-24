@@ -1,4 +1,17 @@
-// Koi parsing rule v1.3.8 — XQL-verified extraction logic.
+// Koi parsing rule v1.4.0 — XQL-verified extraction logic.
+//
+// v1.4.0 (2026-07-25) adds four columns, each prototyped against the live dataset
+// before landing (see "Strategy" below for why that loop is possible):
+//   koi_notification_id  — THE dedupe key. Alerts are re-sent every fetch; this
+//                          tenant measured 12,062 rows -> 17 distinct alerts (~709x)
+//                          over 7 days. Verified 100% populated (0 nulls / 12,375 rows).
+//   item_marketplace     — the short (event) form of the item's marketplace.
+//   item_marketplace_api — the command-safe long form. 58% of this tenant's
+//                          marketplace values would HTTP-400 unmapped.
+//   marketplace_api      — the Audit-side twin of the above.
+// and guards alert_item_version against the empty string (a `!= null` test is a
+// false pass when Koi sends value:""). Guard verified non-destructive: 3,795 real
+// versions preserved, 0 altered.
 //
 // Strategy: cache to_json_string(resources/observables) once via a
 // chained alter, then use coalesce-of-positions with json_extract_scalar.
@@ -15,10 +28,72 @@
 
 [INGEST:vendor="koi", product="koi", target_dataset="koi_koi_raw", no_hit=keep]
 filter source_log_type = "Audit"
-| alter _time = created_at;
+| alter _time = created_at
+// ── marketplace_api — the command-safe form of `marketplace`. ──────────────
+// WHY: Koi's EVENT vocabulary and its API vocabulary are DIFFERENT. `marketplace`
+// is a REQUIRED argument on koi-inventory-item-get, koi-inventory-item-endpoints-list
+// and koi-blocklist-items-add, and this integration's predefined list is the API's
+// long form. Feeding a raw event value to those commands returns HTTP 400.
+//
+// Measured on THIS tenant, 90 days, 2026-07-24: 13,912 rows carry a marketplace and
+// 8,124 of them (58%) would be rejected unchanged. Ranked:
+//   software_windows 5,183 -> windows        pypi   4,539 -> pypi (unchanged)
+//   chrome           1,101 -> chrome_web_store   npm   815 -> npm (unchanged)
+//   built_in           839 -> NULL           software_mac 637 -> mac
+//   homebrew           228 -> homebrew       vsc          196 -> vscode
+//   cursor              95 -> cursor         chocolatey    91 -> chocolatey
+//   github              72 -> github_mcp_registry  edge     27 -> edge_add_ons
+//   npp                 22 -> notepad++      firefox       21 -> firefox_add_ons
+//   docker              15 -> docker         openvsx       10 -> open_vsx_registry
+//   side_loaded          6 -> NULL           claude_desktop_extensions 5 -> unchanged
+//   jet                  5 -> jetbrains      ollama         4 -> NULL
+//   huggingface          1 -> hugging_face
+//
+// `marketplace` itself is left UNTOUCHED — it stays the verbatim Koi event value.
+// The map is idempotent: an already-long value falls through the whitelist unchanged.
+| alter marketplace_api = if(
+    marketplace = "software_windows", "windows",
+    marketplace = "software_mac",     "mac",
+    marketplace = "chrome",           "chrome_web_store",
+    marketplace = "edge",             "edge_add_ons",
+    marketplace = "firefox",          "firefox_add_ons",
+    marketplace = "vsc",              "vscode",
+    marketplace = "jet",              "jetbrains",
+    marketplace = "npp",              "notepad++",
+    marketplace = "openvsx",          "open_vsx_registry",
+    marketplace = "github",           "github_mcp_registry",
+    // Seen on THIS tenant but absent from the source pack's map — the API spells it
+    // with an underscore.
+    marketplace = "huggingface",      "hugging_face",
+    // The integration's full 22-value predefined list; already-API values pass through.
+    marketplace in ("chocolatey", "chrome_web_store", "claude_desktop_extensions", "cursor",
+                    "docker", "edge_add_ons", "firefox_add_ons", "github_mcp_registry",
+                    "homebrew", "hugging_face", "jetbrains", "linux", "mac", "notepad++",
+                    "npm", "office_add_ins", "open_vsx_registry", "pypi", "visual_studio",
+                    "vscode", "windows", "windsurf"), marketplace,
+    // NULL = "unknown marketplace". built_in and side_loaded are installation_method
+    // values leaking into this field; ollama is absent from the API's list entirely.
+    // A playbook must read null here as "cannot call an item-scoped command" — NEVER
+    // as "fall back to the raw value".
+    to_string(null));
 
 filter source_log_type = "Alerts"
 | alter
+    // ── koi_notification_id — THE DEDUPE KEY. Read this before writing any query
+    // that counts alerts.
+    //
+    // The collector re-sends every STILL-OPEN alert on each fetch, so a row in this
+    // dataset is a FETCH, not an alert. Measured on THIS tenant 2026-07-25, last 7
+    // days: 12,062 rows -> 17 distinct notification ids. That is ~709x amplification.
+    //
+    // metadata.notification_event_id is the only per-alert key. The two obvious
+    // alternatives are NOT per-alert and must never be used for this:
+    //   koi_event_id -> the SCAN BATCH   finding_uid -> the POLICY DEFINITION
+    // (Both were additionally null across the whole 7-day window on this tenant.)
+    //
+    // Any count of alerts must therefore be count_distinct(koi_notification_id).
+    // Audit rows are unaffected (1.0x) — they are point-in-time with unique ids.
+    koi_notification_id   = json_extract_scalar(metadata, "$.notification_event_id"),
     // finding_info — single object, no cast needed.
     finding_uid           = json_extract_scalar(finding_info, "$.uid"),
     finding_title         = json_extract_scalar(finding_info, "$.title"),
@@ -56,6 +131,17 @@ filter source_log_type = "Alerts"
         if(json_extract_scalar(observables_str, "$.5.name")="item.version", json_extract_scalar(observables_str, "$.5.value"), null),
         if(json_extract_scalar(observables_str, "$.6.name")="item.version", json_extract_scalar(observables_str, "$.6.value"), null),
         if(json_extract_scalar(observables_str, "$.7.name")="item.version", json_extract_scalar(observables_str, "$.7.value"), null)),
+    // item.marketplace — the SHORT (event) form. Mapped to the API form in the
+    // final alter stage below; see item_marketplace_api there.
+    item_marketplace = coalesce(
+        if(json_extract_scalar(observables_str, "$.0.name")="item.marketplace", json_extract_scalar(observables_str, "$.0.value"), null),
+        if(json_extract_scalar(observables_str, "$.1.name")="item.marketplace", json_extract_scalar(observables_str, "$.1.value"), null),
+        if(json_extract_scalar(observables_str, "$.2.name")="item.marketplace", json_extract_scalar(observables_str, "$.2.value"), null),
+        if(json_extract_scalar(observables_str, "$.3.name")="item.marketplace", json_extract_scalar(observables_str, "$.3.value"), null),
+        if(json_extract_scalar(observables_str, "$.4.name")="item.marketplace", json_extract_scalar(observables_str, "$.4.value"), null),
+        if(json_extract_scalar(observables_str, "$.5.name")="item.marketplace", json_extract_scalar(observables_str, "$.5.value"), null),
+        if(json_extract_scalar(observables_str, "$.6.name")="item.marketplace", json_extract_scalar(observables_str, "$.6.value"), null),
+        if(json_extract_scalar(observables_str, "$.7.name")="item.marketplace", json_extract_scalar(observables_str, "$.7.value"), null)),
     device_os_obs = coalesce(
         if(json_extract_scalar(observables_str, "$.0.name")="device.os", json_extract_scalar(observables_str, "$.0.value"), null),
         if(json_extract_scalar(observables_str, "$.1.name")="device.os", json_extract_scalar(observables_str, "$.1.value"), null),
@@ -180,4 +266,44 @@ filter source_log_type = "Alerts"
         if(json_extract_scalar(resources_str, "$.0.type")="mcp", json_extract_scalar(resources_str, "$.0.criticality"), null),
         if(json_extract_scalar(resources_str, "$.1.type")="mcp", json_extract_scalar(resources_str, "$.1.criticality"), null),
         if(json_extract_scalar(resources_str, "$.2.type")="mcp", json_extract_scalar(resources_str, "$.2.criticality"), null),
-        if(json_extract_scalar(resources_str, "$.3.type")="mcp", json_extract_scalar(resources_str, "$.3.criticality"), null));
+        if(json_extract_scalar(resources_str, "$.3.type")="mcp", json_extract_scalar(resources_str, "$.3.criticality"), null))
+// ── final stage: values that CONSUME columns built above ───────────────────
+// A separate alter stage for the same reason the resources_str/observables_str
+// cache is its own stage — item_marketplace_api reads item_marketplace, and
+// the version guard rewrites alert_item_version.
+| alter
+    // ── alert_item_version — empty-string guard.
+    // Koi sends {"name":"item.version","value":""} on MCP alerts (831 of 842 in the
+    // source pack's measurement). The KEY IS PRESENT, so a `!= null` test is a FALSE
+    // PASS: the value flows on as "" and any command taking a required `version`
+    // argument fails. Normalise "" to a real null so isNotEmpty behaves.
+    alert_item_version = if(alert_item_version != "", alert_item_version, to_string(null)),
+
+    // ── item_marketplace_api — the command-safe marketplace value.
+    // Same defect and same table as marketplace_api in the Audit block above; the
+    // rationale and this tenant's measured frequencies are documented there.
+    //
+    // Evidence the table is right rather than merely plausible: the alert payload
+    // carries this field TWICE, in BOTH vocabularies — observables[item.marketplace]
+    // is the short form, while resources[type="item"].data.marketplace is already the
+    // API long form. Koi therefore states the mapping itself, in its own payload.
+    //
+    // item_marketplace stays the verbatim event value; this is the derived one.
+    item_marketplace_api = if(
+        item_marketplace = "software_windows", "windows",
+        item_marketplace = "software_mac",     "mac",
+        item_marketplace = "chrome",           "chrome_web_store",
+        item_marketplace = "edge",             "edge_add_ons",
+        item_marketplace = "firefox",          "firefox_add_ons",
+        item_marketplace = "vsc",              "vscode",
+        item_marketplace = "jet",              "jetbrains",
+        item_marketplace = "npp",              "notepad++",
+        item_marketplace = "openvsx",          "open_vsx_registry",
+        item_marketplace = "github",           "github_mcp_registry",
+        item_marketplace = "huggingface",      "hugging_face",
+        item_marketplace in ("chocolatey", "chrome_web_store", "claude_desktop_extensions", "cursor",
+                             "docker", "edge_add_ons", "firefox_add_ons", "github_mcp_registry",
+                             "homebrew", "hugging_face", "jetbrains", "linux", "mac", "notepad++",
+                             "npm", "office_add_ins", "open_vsx_registry", "pypi", "visual_studio",
+                             "vscode", "windows", "windsurf"), item_marketplace,
+        to_string(null));
