@@ -161,6 +161,16 @@ Pure functions (`parse_tracker`, `emit_tracker`, `compute_due`, `upsert_members`
 are unit-tested locally with no tenant dependency; thin demisto wrappers call `getList`/`setList`/
 `core-get-endpoints`.
 
+## Known scope boundary — parameterless deployment scripts
+
+`core-script-run` accepts a bare invocation (`script_uid` + `endpoint_ids`, no `parameters_values`)
+**only** for scripts whose `script_input` is empty. The two production scripts —
+`KOI Deployment Script - Windows`/`- macOS` — are parameterless (verified via `get_script_metadata`),
+so the run task's bare call is correct for them. A script that declares inputs (e.g. the built-in
+`list_directories`, which needs `path`) returns HTTP 500 `parameters_values must be of type: dict`.
+The Execute Endpoint Script run task passes no `parameters_values`, so swapping in a parameter-requiring
+deployment script would need that input added. Out of scope while the deployment scripts stay parameterless.
+
 ## Runtime facts learned during the build (all verified live)
 
 - The automation is **self-contained** — it imports no `demistomock`/`CommonServerPython`
