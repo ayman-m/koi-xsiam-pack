@@ -145,12 +145,13 @@ pack — an accepted trade for reliability and testability.
 
 `KoiScanTracker` is action-dispatched:
 
-- `action=refresh` — enumerate the group via the **raw endpoints API** paged
-  `search_from`/`search_to` in 100-row windows (`demisto.internalHttpRequest`, authenticated
-  inside the platform), append-only upsert into the tracker List. The `core-get-endpoints`
-  **command cannot** page past 100 (its `first_seen` arg does not filter — verified: a pivot
-  returned all 7, not 4), which is why refresh uses the raw API. Verified against the tenant:
-  windowed paging gives complete coverage (`unique == total_count`).
+- `action=refresh` — enumerate the group via the raw endpoints API paged
+  `search_from`/`search_to` in 100-row windows, bridged through the **Core REST API**
+  integration's `core-api-post` (verified: `internalHttpRequest` 404s on `/public_api` — it
+  only serves the XSOAR internal API; and the `core-get-endpoints` command cannot page past
+  100, its `first_seen` arg does not filter). Append-only upsert into the tracker List, which
+  it **creates via `createList`** if missing (`setList` cannot create). **Verified live on the
+  tenant end-to-end**: refresh→select→mark, interval-skip, and the connected-check all behave.
 - `action=select` — read tracker, filter to os, compute the due set (empty `last_scan` or
   `now − last_scan ≥ interval_hours`), sort stale-first, cap at max, confirm currently connected
   via a targeted `core-get-endpoints` by id-list, return the runnable ids.
@@ -159,6 +160,18 @@ pack — an accepted trade for reliability and testability.
 Pure functions (`parse_tracker`, `emit_tracker`, `compute_due`, `upsert_members`, `mark_scanned`)
 are unit-tested locally with no tenant dependency; thin demisto wrappers call `getList`/`setList`/
 `core-get-endpoints`.
+
+## Runtime facts learned during the build (all verified live)
+
+- The automation is **self-contained** — it imports no `demistomock`/`CommonServerPython`
+  (a raw pack upload skips demisto-sdk's prepare-content that would inline them). It uses only
+  the injected `demisto` global plus small inlined helpers.
+- **New prerequisite:** the **Core REST API** integration must be configured — the automation
+  calls `core-api-post` to reach the XDR endpoints API for enumeration.
+- Upload path that works with a signed key: wrap the unified script in a minimal pack zip and
+  POST to `/xsoar/contentpacks/installed/upload?skipVerify=true&skipValidation=true` (use a
+  **distinct pack id**, never `Koi`, or it clobbers the real pack). The `/automation` POST is a
+  search endpoint; the multipart import endpoints 303 under key auth.
 
 ## Content inventory
 

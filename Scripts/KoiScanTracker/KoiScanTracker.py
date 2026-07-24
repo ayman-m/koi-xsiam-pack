@@ -14,8 +14,27 @@ and only does a targeted connected-check on the <=100 it returns.
 import io
 import csv
 import time
-import demistomock as demisto  # noqa
-from CommonServerPython import *  # noqa
+import json
+# Self-contained: relies only on the `demisto` global the platform injects at runtime.
+# No demistomock / CommonServerPython import, so it runs from a raw pack upload without
+# the demisto-sdk prepare-content (unify) step that would otherwise inline those libs.
+
+def _is_error(res):
+    return isinstance(res, list) and any(isinstance(e, dict) and e.get("Type") == 4 for e in res)
+
+def _error_text(res):
+    return "; ".join(str(e.get("Contents")) for e in res if isinstance(e, dict) and e.get("Type") == 4)
+
+def _arg_list(v):
+    if not v:
+        return []
+    if isinstance(v, list):
+        return v
+    return [x.strip() for x in str(v).split(",") if x.strip()]
+
+def _md_result(readable, outputs_key, outputs):
+    return {"Type": 1, "ContentsFormat": "json", "Contents": outputs,
+            "HumanReadable": readable, "EntryContext": {outputs_key: outputs}}
 
 HEADER = ["endpoint_id", "last_scan"]
 
@@ -79,7 +98,7 @@ def mark_scanned(rows, endpoint_ids, now_epoch):
 
 def get_list(name):
     res = demisto.executeCommand("getList", {"listName": name})
-    if not res or is_error(res):
+    if not res or _is_error(res):
         return ""
     contents = res[0].get("Contents")
     if not isinstance(contents, str) or contents.startswith("Item not found"):
@@ -89,8 +108,14 @@ def get_list(name):
 
 def set_list(name, text):
     res = demisto.executeCommand("setList", {"listName": name, "listData": text})
-    if is_error(res):
-        raise DemistoException("setList failed: " + get_error(res))
+    if _is_error(res):
+        err = _error_text(res)
+        if "not found" in err.lower():                 # setList can't create — create it
+            c = demisto.executeCommand("createList", {"listName": name, "listData": text})
+            if _is_error(c):
+                raise Exception("createList failed: " + _error_text(c))
+        else:
+            raise Exception("setList failed: " + err)
 
 
 def _eid(ep):
@@ -101,8 +126,8 @@ def get_endpoints_cmd(args):
     """Targeted lookup via the core-get-endpoints COMMAND (<=100 ids). Used by `select`
     for the connected-check — NOT for enumeration (the command cannot page past 100)."""
     res = demisto.executeCommand("core-get-endpoints", args)
-    if is_error(res):
-        raise DemistoException("core-get-endpoints failed: " + get_error(res))
+    if _is_error(res):
+        raise Exception("core-get-endpoints failed: " + _error_text(res))
     out = []
     for entry in res:
         c = entry.get("Contents")
@@ -115,8 +140,8 @@ def get_endpoints_cmd(args):
 
 def enumerate_group(group_name, os_platform):
     """Full roster via the raw endpoints API, paged search_from/search_to in 100-row
-    windows (the only mechanism that pages past 100 — the command cannot). Runs inside
-    the platform via internalHttpRequest, so no external auth is needed."""
+    windows (the only mechanism that pages past 100 — the command caps at 100). Bridged
+    through the Core REST API integration's core-api-post, which reaches /public_api."""
     filters = []
     if group_name:
         filters.append({"field": "group_name", "operator": "in", "value": [group_name]})
@@ -125,13 +150,23 @@ def enumerate_group(group_name, os_platform):
 
     ids, frm, total = [], 0, None
     while frm < 200000:  # hard backstop
-        body = {"request_data": {"search_from": frm, "search_to": frm + 100,
-                                 "sort": {"field": "first_seen", "keyword": "asc"}}}
+        rd = {"search_from": frm, "search_to": frm + 100,
+              "sort": {"field": "first_seen", "keyword": "asc"}}
         if filters:
-            body["request_data"]["filters"] = filters
-        resp = demisto.internalHttpRequest("POST", "/public_api/v1/endpoints/get_endpoint/",
-                                           json.dumps(body))
-        reply = (json.loads(resp.get("body") or "{}")).get("reply") or {}
+            rd["filters"] = filters
+        res = demisto.executeCommand("core-api-post", {
+            "uri": "/public_api/v1/endpoints/get_endpoint/",
+            "body": json.dumps({"request_data": rd})})
+        if _is_error(res):
+            raise Exception("core-api-post failed: " + _error_text(res))
+        contents = res[0].get("Contents") if res else {}
+        if isinstance(contents, str):
+            try:
+                contents = json.loads(contents)
+            except Exception:
+                contents = {}
+        reply = ((contents.get("response") or {}).get("reply")) if isinstance(contents, dict) else {}
+        reply = reply or {}
         batch = reply.get("endpoints") or []
         total = reply.get("total_count", total)
         ids.extend(_eid(e) for e in batch if _eid(e))
@@ -152,12 +187,11 @@ def action_refresh(a):
     collected = enumerate_group(a.get("group_name"), os_platform)
     rows, added = upsert_members(rows, collected)
     set_list(list_name, emit_tracker(rows))
-    return CommandResults(
-        readable_output=f"Refreshed **{list_name}**: {len(collected)} group endpoints seen; "
-                        f"{added} new added; {len(rows)} total tracked.",
-        outputs_prefix="KoiScanTracker.Refresh",
-        outputs={"tracker_list": list_name, "seen": len(collected), "added": added, "total": len(rows)},
-    )
+    return _md_result(
+        f"Refreshed **{list_name}**: {len(collected)} group endpoints seen; "
+        f"{added} new added; {len(rows)} total tracked.",
+        "KoiScanTracker.Refresh",
+        {"tracker_list": list_name, "seen": len(collected), "added": added, "total": len(rows)})
 
 
 def action_select(a):
@@ -174,27 +208,25 @@ def action_select(a):
         present = {_eid(e) for e in get_endpoints_cmd(q)}
         connected = [eid for eid in due if eid in present]
 
-    return CommandResults(
-        readable_output=f"**{list_name}**: {len(rows)} tracked, {len(due)} due, "
-                        f"{len(connected)} due & connected (interval {interval_hours}h).",
-        outputs_prefix="KoiScanTracker.Select",
-        outputs={"tracker_list": list_name, "due_connected": connected,
-                 "due_count": len(due), "connected_count": len(connected)},
-    )
+    return _md_result(
+        f"**{list_name}**: {len(rows)} tracked, {len(due)} due, "
+        f"{len(connected)} due & connected (interval {interval_hours}h).",
+        "KoiScanTracker.Select",
+        {"tracker_list": list_name, "due_connected": connected,
+         "due_count": len(due), "connected_count": len(connected)})
 
 
 def action_mark(a):
     list_name = a["tracker_list"]
-    ids = argToList(a.get("endpoint_ids"))
+    ids = _arg_list(a.get("endpoint_ids"))
     now = int(time.time())
     rows = parse_tracker(get_list(list_name))
     mark_scanned(rows, ids, now)
     set_list(list_name, emit_tracker(rows))
-    return CommandResults(
-        readable_output=f"Marked {len(ids)} endpoint(s) scanned at {now} in **{list_name}**.",
-        outputs_prefix="KoiScanTracker.Mark",
-        outputs={"tracker_list": list_name, "marked": len(ids), "at": now},
-    )
+    return _md_result(
+        f"Marked {len(ids)} endpoint(s) scanned at {now} in **{list_name}**.",
+        "KoiScanTracker.Mark",
+        {"tracker_list": list_name, "marked": len(ids), "at": now})
 
 
 def main():
@@ -202,16 +234,16 @@ def main():
     action = a.get("action")
     try:
         if action == "refresh":
-            return_results(action_refresh(a))
+            demisto.results(action_refresh(a))
         elif action == "select":
-            return_results(action_select(a))
+            demisto.results(action_select(a))
         elif action == "mark":
-            return_results(action_mark(a))
+            demisto.results(action_mark(a))
         else:
-            raise ValueError(f"unknown action: {action!r} (expected refresh|select|mark)")
+            raise ValueError("unknown action: %r (expected refresh|select|mark)" % action)
     except Exception as e:  # noqa
-        return_error(f"KoiScanTracker [{action}] failed: {e}")
+        demisto.results({"Type": 4, "ContentsFormat": "text",
+                         "Contents": "KoiScanTracker [%s] failed: %s" % (action, e)})
 
 
-if __name__ in ("__main__", "__builtin__", "builtins"):
-    main()
+main()
