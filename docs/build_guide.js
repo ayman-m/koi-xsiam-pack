@@ -376,6 +376,7 @@ const playbooks = [
   p("Create two time-triggered Jobs (Investigation & Response → Automation → Jobs → New Job). Schedule them at non-overlapping times; Refresh is append-only and Scan only updates existing rows, so an occasional overlap self-heals on the next cycle."),
   step_playbooks([{ text: "Refresh Job. ", bold: true }, { text: "Time-triggered, infrequent (e.g., hourly), playbook " }, { text: "Koi Unified - Refresh Tracker", bold: true }, { text: ". Run this at least once before the first Scan so the tracker is populated." }]),
   step_playbooks([{ text: "Scan Job. ", bold: true }, { text: "Time-triggered, frequent (e.g., every 10 minutes), playbook " }, { text: "Koi Unified - Script Runner", bold: true }, { text: ". Save, then use Run now for an immediate first run." }]),
+  step_playbooks([{ text: "Enable both Jobs. ", bold: true }, { text: "A newly created Job can be disabled by default. Confirm the scheduling toggle is on and a next-run time is shown for each — otherwise the Job never fires, the tracker stays empty, and Scan has nothing to do." }]),
   h2("10.6 Run outcomes"),
   table([2200, 3800, 3360], [
     ["Outcome", "Meaning", "Notification"],
@@ -490,7 +491,7 @@ const manualOnboard = [
     ["5", "Koi Unified - Refresh Tracker", "Investigation & Response → Automation → Playbooks → Import"],
     ["6", "Koi Unified - Script Runner", "Investigation & Response → Automation → Playbooks → Import"],
   ]),
-  p("Then create the JSON List \"Koi Script Runner\" (Settings → Configurations → Object Setup → Lists → New List, type JSON) and two time-triggered Jobs: a Refresh Job on \"Koi Unified - Refresh Tracker\" (infrequent) and a Scan Job on \"Koi Unified - Script Runner\" (frequent). The per-scope tracker Lists are created automatically by the first Refresh run."),
+  p("Then create the JSON List \"Koi Script Runner\" (Settings → Configurations → Object Setup → Lists → New List, type JSON) and two time-triggered Jobs: a Refresh Job on \"Koi Unified - Refresh Tracker\" (infrequent) and a Scan Job on \"Koi Unified - Script Runner\" (frequent). Enable both Jobs after creating them — confirm each shows a next-run time, or it will not fire. Run Refresh once before the first Scan; the per-scope tracker Lists are created automatically by that first Refresh run."),
   p("Enable the built-in Core REST API integration, and make sure these already exist on the tenant, referenced by name from the List: the parameterless KOI script package in Action Center → Scripts Library (its Library name must equal script.name exactly, or pin script.uuid instead), an endpoint group named in target.endpoint_groups containing connected and unisolated agents whose OS matches target.endpoint_os, and — only if you configure notifications — an enabled mail-sender instance matching notification.sendmail_instance.name."),
   p("To validate this deployment on its own, run only test 9 of the test guide: Run now on the Refresh Job, then Run now on the Scan Job, and confirm the tracker List fills and ScriptResult ok:true with an action_id per scanned scope. Tests 1 to 8 all exercise the KOI API and do not apply.", { italics: true, color: GRAY }),
 ];

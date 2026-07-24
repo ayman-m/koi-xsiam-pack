@@ -186,7 +186,9 @@ what gets called before what calls it — automation first, then leaf sub-playbo
 Then create **two** Time-triggered Jobs (Automation → Jobs → New Job):
 
 - **Scan** — playbook `Koi Unified - Script Runner`, frequent (e.g. every 10 minutes).
-- **Refresh** — playbook `Koi Unified - Refresh Tracker`, less frequent (e.g. hourly).
+- **Refresh** — playbook `Koi Unified - Refresh Tracker`, less frequent (e.g. hourly). **Run it once before the first Scan** so the tracker is populated.
+
+> **Enable each Job after creating it.** A new Job can land disabled — confirm its scheduling toggle is **on** and a next-run time is shown, or it never fires (the tracker stays empty and Scan has nothing to do).
 
 The per-scope tracker Lists (e.g. `Koi Scan Tracker - Windows`, named by each entry's `target.tracker_list`)
 are **created automatically** by the first Refresh run — you do not pre-create them.

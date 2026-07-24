@@ -184,3 +184,8 @@ closes its own investigation at the end of every run:
 Schedule them at non-overlapping times. Refresh is append-only (it never writes `last_scan`) and
 Scan only updates existing rows, so an occasional overlap self-heals on the next cycle. Run Refresh
 at least once before the first Scan, or the tracker is empty and Scan has nothing due to do.
+
+**Enable each Job after creating it** — a newly created Job can be disabled by default. Confirm the
+scheduling toggle is on and a next-run time appears; otherwise the Job never fires. (Verified on-tenant:
+a Job left disabled produces no runs; once enabled, Refresh populates the tracker and Scan dispatches to
+the due, connected endpoints.)

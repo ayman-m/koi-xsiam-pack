@@ -303,7 +303,7 @@ const testSlide = (kicker, title, steps, expects, note) => {
   const fy = 1.78 + 6 * (rh + 0.10) + 0.06;
   card(s, M, fy, W, 1.02, CARD_HI);
   s.addText("Then the List + two Jobs", { x: M + 0.32, y: fy + 0.12, w: 4.4, h: 0.28, fontSize: 11.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
-  s.addText("Create the JSON List Koi Script Runner (Object Setup → Lists). Then two Time-triggered Jobs: Scan → Koi Unified - Script Runner (frequent, e.g. 10 min); Refresh → Koi Unified - Refresh Tracker (hourly). The per-scope tracker Lists auto-create on the first Refresh. You still need the built-in Core REST API integration enabled — no KOI key, no KOI instance, no rules or dashboard.", {
+  s.addText("Create the JSON List Koi Script Runner (Object Setup → Lists). Then two Time-triggered Jobs: Scan → Koi Unified - Script Runner (e.g. 10 min); Refresh → Koi Unified - Refresh Tracker (hourly). Enable both — a new Job can be created disabled. The tracker Lists auto-create on the first Refresh. Also enable the built-in Core REST API integration — no KOI key, instance, rules or dashboard.", {
     x: M + 0.32, y: fy + 0.40, w: W - 0.64, h: 0.56, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top",
   });
   s.addNotes("Import order matters because references bind by name — import what gets called before what calls it (automation first). Two jobs now: Refresh builds the tracker, Scan runs the due endpoints. Refresh must run once before the first Scan or the tracker is empty and Scan has nothing to do.");
@@ -628,7 +628,7 @@ testSlide("Test 9", "Script Runner job",
     "SKIPPED info entries where no due, connected endpoint matches — and no failure email.",
     "Action Center shows the script dispatched.",
   ],
-  "Two jobs: Refresh builds the tracker, Scan runs the due endpoints — run Refresh once before the first Scan. Mark-on-dispatch means a poll timeout logs STILL RUNNING and never emails; a SKIPPED entry is not a failure."
+  "Two jobs (enable both after creating them): Refresh builds the tracker, Scan runs the due endpoints — run Refresh once before the first Scan. Mark-on-dispatch means a poll timeout logs STILL RUNNING and never emails; a SKIPPED entry is not a failure."
 ).addNotes("Coverage is tracker-driven now. Refresh enumerates the group (paged past 100 via Core REST API) into the tracker; Scan takes up to 100 due, connected, right-OS endpoints, dispatches, and marks them. Groups over 100 are covered across successive Scan runs, then re-scanned every rescan_interval_hours.");
 
 /* ============================ 13. Troubleshooting ============================ */
