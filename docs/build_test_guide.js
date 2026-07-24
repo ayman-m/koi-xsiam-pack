@@ -188,10 +188,10 @@ const testSlide = (kicker, title, steps, expects, note) => {
     ]],
     ["Script Runner only", CYAN, "Run KOI scripts on endpoints from a Job", [
       "A Cortex XSIAM tenant with Cortex agents installed",
-      "The KOI script package uploaded to Action Center → Scripts Library",
-      "An endpoint group containing connected, unisolated agents",
+      "The built-in Core REST API integration, enabled (no KOI key or KOI instance)",
+      "The KOI script package (parameterless) in Action Center → Scripts Library",
+      "An endpoint group of connected, unisolated agents",
       "Optionally a mail-sender instance for notifications",
-      "No KOI API key and no KOI integration instance",
     ]],
   ];
   const cw = (W - 0.4) / 2;
@@ -202,10 +202,10 @@ const testSlide = (kicker, title, steps, expects, note) => {
     s.addText(sub, { x: x + 0.34, y: 2.52, w: cw - 0.68, h: 0.3, fontSize: 11, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
     rowList(s, items, x + 0.34, 2.98, cw - 0.68, "tick");
   });
-  s.addText("The Script Runner playbooks call no koi-* command at all — only core-get-scripts, core-get-endpoints and core-script-run.", {
+  s.addText("The Script Runner playbooks call no koi-* command — only core-get-scripts, core-get-endpoints, core-script-run and core-api-post (that last one via the built-in Core REST API).", {
     x: M, y: 6.6, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
-  s.addNotes("Verified against the playbook YAML: the three Koi Unified playbooks invoke no KOI API command, so a script-only customer needs neither a KOI key nor an integration instance.");
+  s.addNotes("Verified against the playbook YAML: the five Koi Unified playbooks plus the KoiScanTracker automation invoke no KOI API command, so a script-only customer needs no KOI key or KOI instance — only the built-in Core REST API integration, which KoiScanTracker uses to page endpoint groups past 100.");
 }
 
 /* ============================ 3. Install paths ============================ */
@@ -280,30 +280,33 @@ const testSlide = (kicker, title, steps, expects, note) => {
 {
   const s = newSlide();
   heading(s, "Installation", "Script Runner only — the minimal import");
-  s.addText("To run KOI scripts from an XSIAM Job and nothing else, import these four items by hand. Nothing else in the pack is required.", {
-    x: M, y: 1.42, w: 10.4, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
+  s.addText("To run KOI scripts from XSIAM Jobs and nothing else, import these six content items by hand, then create the List and two Jobs. Nothing else in the pack is required.", {
+    x: M, y: 1.36, w: 11.4, h: 0.34, fontSize: 12, color: BODY, fontFace: F, margin: 0, valign: "top",
   });
   const items = [
-    ["1", "Koi Unified - Execute Endpoint Script", "Playbooks → Import", "Import first — the others reference it by name.", CYAN],
-    ["2", "Koi Unified - Process Config Entry", "Playbooks → Import", "Import second — calls the executor above.", CYAN],
-    ["3", "Koi Unified - Script Runner", "Playbooks → Import", "Import third — the Job entry point.", CYAN],
-    ["4", "Koi Script Runner", "Object Setup → Lists, type JSON", "The configuration array. Name must be exact.", ORANGE],
+    ["1", "KoiScanTracker  (automation)", "Automation → Scripts → Import", "Import first — every playbook below calls it.", GREEN],
+    ["2", "Koi Unified - Execute Endpoint Script", "Automation → Playbooks → Import", "Selects due endpoints, runs, marks.", CYAN],
+    ["3", "Koi Unified - Process Config Entry", "Automation → Playbooks → Import", "Calls the executor above.", CYAN],
+    ["4", "Koi Unified - Refresh Entry", "Automation → Playbooks → Import", "Walks the group, upserts the tracker.", CYAN],
+    ["5", "Koi Unified - Refresh Tracker", "Automation → Playbooks → Import", "Refresh job entry — calls Refresh Entry.", CYAN],
+    ["6", "Koi Unified - Script Runner", "Automation → Playbooks → Import", "Scan job entry — calls Process Config Entry.", CYAN],
   ];
-  const rh = 0.84;
+  const rh = 0.56;
   items.forEach(([n, name, where, note, c], i) => {
-    const y = 1.9 + i * (rh + 0.16);
+    const y = 1.78 + i * (rh + 0.10);
     card(s, M, y, W, rh);
-    chip(s, M + 0.28, y + 0.24, n, c, 0.34);
-    s.addText(name,  { x: M + 0.82, y: y + 0.16, w: 4.4, h: 0.28, fontSize: 12, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(where, { x: M + 0.82, y: y + 0.46, w: 4.4, h: 0.26, fontSize: 10, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-    s.addText(note,  { x: M + 5.5,  y: y + 0.28, w: W - 5.8, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    chip(s, M + 0.26, y + 0.13, n, c, 0.30);
+    s.addText(name,  { x: M + 0.72, y: y + 0.07, w: 5.1, h: 0.26, fontSize: 11.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+    s.addText(where, { x: M + 0.72, y: y + 0.32, w: 5.1, h: 0.22, fontSize: 9.5, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+    s.addText(note,  { x: M + 6.0,  y: y + 0.18, w: W - 6.3, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
   });
-  card(s, M, 5.92, W, 1.06, CARD_HI);
-  s.addText("Then create the Job", { x: M + 0.32, y: 6.06, w: 3.4, h: 0.28, fontSize: 11.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
-  s.addText("Automation → Jobs → New Job, Time-triggered, playbook Koi Unified - Script Runner. You do NOT need the KOI integration, an API key, the parsing or modeling rules, the dashboard, or any of the seven KOI triage playbooks — the Script Runner set calls no KOI API command.", {
-    x: M + 0.32, y: 6.38, w: W - 0.64, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
+  const fy = 1.78 + 6 * (rh + 0.10) + 0.06;
+  card(s, M, fy, W, 1.02, CARD_HI);
+  s.addText("Then the List + two Jobs", { x: M + 0.32, y: fy + 0.12, w: 4.4, h: 0.28, fontSize: 11.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Create the JSON List Koi Script Runner (Object Setup → Lists). Then two Time-triggered Jobs: Scan → Koi Unified - Script Runner (frequent, e.g. 10 min); Refresh → Koi Unified - Refresh Tracker (hourly). The per-scope tracker Lists auto-create on the first Refresh. You still need the built-in Core REST API integration enabled — no KOI key, no KOI instance, no rules or dashboard.", {
+    x: M + 0.32, y: fy + 0.40, w: W - 0.64, h: 0.56, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top",
   });
-  s.addNotes("Import order matters because sub-playbook references bind by name — importing the parent first leaves it pointing at a playbook that does not exist yet.");
+  s.addNotes("Import order matters because references bind by name — import what gets called before what calls it (automation first). Two jobs now: Refresh builds the tracker, Scan runs the due endpoints. Refresh must run once before the first Scan or the tracker is empty and Scan has nothing to do.");
 }
 
 /* ============================ 6. Naming requirements ============================ */
@@ -358,31 +361,34 @@ const testSlide = (kicker, title, steps, expects, note) => {
     '    "script": { "name": "KOI Deployment Script - Windows" },',
     '    "target": {',
     '      "endpoint_groups": ["KOI Endpoints"],',
-    '      "endpoint_os": "Windows"',
+    '      "endpoint_os": "Windows",',
+    '      "tracker_list": "Koi Scan Tracker - Windows",',
+    '      "rescan_interval_hours": 720',
     '    }',
     '  },',
     '  { ...one more entry per OS you deploy to... }',
     ']',
   ].join("\n");
   s.addText(json, {
-    x: M + 0.34, y: 2.5, w: sw - 0.68, h: 2.8, fontSize: 10, fontFace: MONO,
-    color: CYAN, margin: 0, lineSpacing: 15, valign: "top",
+    x: M + 0.34, y: 2.5, w: sw - 0.68, h: 2.9, fontSize: 9.5, fontFace: MONO,
+    color: CYAN, margin: 0, lineSpacing: 14, valign: "top",
   });
 
   card(s, ex, 1.92, ew, 3.55, CARD_HI);
-  s.addText("The three pointers you set", {
-    x: ex + 0.34, y: 2.12, w: ew - 0.68, h: 0.3, fontSize: 12, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
+  s.addText("The four pointers you set", {
+    x: ex + 0.34, y: 2.10, w: ew - 0.68, h: 0.3, fontSize: 12, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
   });
   const ptrs = [
     ["script.name", "A script package in Action Center → Scripts Library", "Sample: KOI Deployment Script - Windows"],
-    ["target.endpoint_groups", "An endpoint group holding connected, unisolated agents", "Sample: KOI Endpoints"],
+    ["target.endpoint_groups", "An endpoint group of connected, unisolated agents", "Sample: KOI Endpoints"],
     ["target.endpoint_os", "The OS scope for that entry", "Windows, macOS or Linux"],
+    ["target.tracker_list", "The CSV List this scope's coverage is tracked in", "Auto-created by Refresh · Koi Scan Tracker - Windows"],
   ];
   ptrs.forEach(([k, m, sample], i) => {
-    const y = 2.56 + i * 0.94;
-    s.addText(k, { x: ex + 0.34, y, w: ew - 0.68, h: 0.26, fontSize: 10.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
-    s.addText(m, { x: ex + 0.34, y: y + 0.28, w: ew - 0.68, h: 0.26, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
-    s.addText(sample, { x: ex + 0.34, y: y + 0.60, w: ew - 0.68, h: 0.24, fontSize: 10, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+    const y = 2.48 + i * 0.72;
+    s.addText(k, { x: ex + 0.34, y, w: ew - 0.68, h: 0.24, fontSize: 10, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
+    s.addText(m, { x: ex + 0.34, y: y + 0.23, w: ew - 0.68, h: 0.24, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
+    s.addText(sample, { x: ex + 0.34, y: y + 0.45, w: ew - 0.68, h: 0.22, fontSize: 9, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
   });
 
   card(s, M, 5.66, W, 1.16, CARD_HI);
@@ -402,28 +408,30 @@ const testSlide = (kicker, title, steps, expects, note) => {
   s.addText("Required", { x: M + 4.7, y: hy, w: 1.6, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
   s.addText("Default and notes", { x: M + 6.5, y: hy, w: 5.3, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
   const fields = [
-    ["script.name", "Yes *", "No default. Must equal the Scripts Library name exactly.", GREEN],
+    ["script.name", "Yes *", "No default. Must equal the Scripts Library name exactly. Must be parameterless.", GREEN],
     ["script.uuid", "No", "Wins over script.name. Use it to survive renames or duplicates.", MUTED],
     ["script.polling_interval_in_seconds", "No", "60 seconds.", MUTED],
     ["script.timeout_in_seconds", "No", "1800 seconds.", MUTED],
     ["target.endpoint_os", "Yes", "No default. Windows, macOS or Linux — case-insensitive.", GREEN],
     ["target.endpoint_groups", "One of these", "No default. Group names holding the target agents.", GREEN],
     ["target.endpoint_hostnames", "One of these", "No default. Specific hostnames instead of a group.", GREEN],
+    ["target.tracker_list", "Yes", "No default. The CSV List this scope is tracked in; Refresh creates it.", GREEN],
+    ["target.rescan_interval_hours", "No", "720 (30 days). Hours before a scanned endpoint is due again.", MUTED],
     ["notification.recipients", "No", "Omit for no email at all.", MUTED],
     ["notification.sendmail_instance.name", "No", "Omit to use any enabled mail instance.", MUTED],
     ["disabled", "No", "false. Set true to skip the entry without deleting it.", MUTED],
   ];
-  const rh = 0.40;
+  const rh = 0.35;
   fields.forEach(([f, req, note, c], i) => {
-    const y = 1.84 + i * (rh + 0.06);
+    const y = 1.78 + i * (rh + 0.05);
     card(s, M, y, W, rh);
-    s.addText(f,    { x: M + 0.3, y: y + 0.09, w: 4.2, h: 0.26, fontSize: 10, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
-    s.addText(req,  { x: M + 4.7, y: y + 0.09, w: 1.6, h: 0.26, fontSize: 10, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
-    s.addText(note, { x: M + 6.5, y: y + 0.09, w: 5.3, h: 0.26, fontSize: 10, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    s.addText(f,    { x: M + 0.3, y: y + 0.07, w: 4.2, h: 0.24, fontSize: 9.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
+    s.addText(req,  { x: M + 4.7, y: y + 0.07, w: 1.6, h: 0.24, fontSize: 9.5, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    s.addText(note, { x: M + 6.5, y: y + 0.07, w: 5.3, h: 0.24, fontSize: 9.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
   });
-  s.addText("*  script.name or script.uuid — one of the two is required.   Every entry also needs endpoint_os, plus endpoint_groups or endpoint_hostnames.", {
-    x: M, y: 1.84 + fields.length * (rh + 0.06) + 0.14, w: W, h: 0.3,
-    fontSize: 10, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
+  s.addText("*  script.name or script.uuid — one of the two is required.   Every entry also needs endpoint_os, tracker_list, plus endpoint_groups or endpoint_hostnames.", {
+    x: M, y: 1.78 + fields.length * (rh + 0.05) + 0.12, w: W, h: 0.3,
+    fontSize: 9.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
   s.addNotes("An entry missing a required field is not a job failure: it is reported with the offending entry and skipped, and the rest of the List still runs.");
 }
@@ -608,20 +616,20 @@ testSlide("Test 8", "Scheduled hunt for risky MCP servers",
 /* ============================ 12. Test 9 ============================ */
 testSlide("Test 9", "Script Runner job",
   [
-    "Confirm the prerequisites exist and match by name.",
-    "Create the JSON List named exactly:",
-    ["Koi Script Runner", "code"],
-    "Automation → Jobs → Run now.",
+    "Confirm the prerequisites: Core REST API enabled, the parameterless script in Action Center, an endpoint group, and the JSON List Koi Script Runner with tracker_list set.",
+    "Run the Refresh job first — Koi Unified - Refresh Tracker — Automation → Jobs → Run now.",
+    "Then run the Scan job — Koi Unified - Script Runner — Run now.",
     "Open the run, then open Action Center.",
   ],
   [
-    "Work Plan is green.",
-    "ScriptResult ok:true plus an action_id.",
-    "SKIPPED info entries where no connected endpoint matches the OS scope — and no failure email.",
-    "Action Center shows COMPLETED_SUCCESSFULLY.",
+    "Refresh fills the tracker List (e.g. Koi Scan Tracker - Windows) with endpoint_id,last_scan rows.",
+    "Scan: Work Plan green; ScriptResult ok:true plus an action_id.",
+    "Scanned endpoints get last_scan stamped; offline / wrong-OS / not-in-inventory rows stay due.",
+    "SKIPPED info entries where no due, connected endpoint matches — and no failure email.",
+    "Action Center shows the script dispatched.",
   ],
-  "Every binding on the 'Names that must match exactly' slide applies here. The war room records which reference broke, and a SKIPPED entry is not a failure — it means no connected, unisolated endpoint currently matches that OS scope."
-).addNotes("Three outcomes are by design: ok, skipped (valid entry, nothing to run on right now) and failed. Skipped is not a failure and deliberately sends no email.");
+  "Two jobs: Refresh builds the tracker, Scan runs the due endpoints — run Refresh once before the first Scan. Mark-on-dispatch means a poll timeout logs STILL RUNNING and never emails; a SKIPPED entry is not a failure."
+).addNotes("Coverage is tracker-driven now. Refresh enumerates the group (paged past 100 via Core REST API) into the tracker; Scan takes up to 100 due, connected, right-OS endpoints, dispatches, and marks them. Groups over 100 are covered across successive Scan runs, then re-scanned every rescan_interval_hours.");
 
 /* ============================ 13. Troubleshooting ============================ */
 {
@@ -632,10 +640,11 @@ testSlide("Test 9", "Script Runner job",
     ["Test passes but no events arrive", "Fetch events not enabled, or no new KOI activity", "Enable it, wait two cycles, check koi-fetch-context-get"],
     ["Triage cannot find the item", "The alert maps the KOI payload elsewhere", "Adjust alert_description on KOI - Extract Alert Context"],
     ["Enrichment empty, playbook still green", "Best-effort by design — KOI was unreachable", "Verify with !koi-users-list limit=1"],
-    ["Job entry reports SKIPPED", "No connected, unisolated endpoint matches the OS scope", "Check group membership and endpoint_os in the List"],
+    ["Scan runs but nothing is scanned", "Tracker empty — Refresh not run yet, or Core REST API off", "Run the Refresh job first; enable Core REST API"],
+    ["Job entry reports SKIPPED", "No due, connected endpoint matches the scope right now", "Check group membership and endpoint_os in the List"],
     ["Script not found at dispatch", "Library name does not match script.name exactly", "Fix the name, or pin script.uuid to be rename-proof"],
   ];
-  const y0 = 1.66, rh = 0.60;                    // every cell is one line — hug it
+  const y0 = 1.60, rh = 0.54;                    // every cell is one line — hug it
   rows.forEach(([sym, cause, fix], i) => {
     const y = y0 + i * (rh + 0.14);
     card(s, M, y, W, rh);
@@ -644,10 +653,10 @@ testSlide("Test 9", "Script Runner job",
     s.addText(fix, { x: M + 7.8, y: y + 0.18, w: W - 8.1, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
   });
   s.addText("The first row accounts for most real-world failures — check egress before anything else.", {
-    x: M, y: y0 + 6 * (rh + 0.14) + 0.18, w: W, h: 0.3,
+    x: M, y: y0 + rows.length * (rh + 0.14) + 0.14, w: W, h: 0.3,
     fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
   });
-  s.addNotes("Almost every real-world failure is one of these six. The first is by far the most common.");
+  s.addNotes("Almost every real-world failure is one of these seven. The first is by far the most common; the tracker-empty row is the most common Script-Runner-specific one.");
 }
 
 /* ============================ 14. Sign-off ============================ */

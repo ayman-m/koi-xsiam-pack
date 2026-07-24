@@ -150,7 +150,7 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     ["B", "Parsing & modeling rules", "Normalize raw events and map them to the Cortex Data Model."],
     ["C", "Alerts dashboard", "Ready-made XSIAM dashboard for KOI alert activity."],
     ["D", "Triage & response playbooks", "Seven playbooks: triage, investigation, and gated response."],
-    ["E", "Script Runner playbooks", "Three playbooks to run KOI scripts on Cortex-Agent endpoints."],
+    ["E", "Script Runner playbooks", "Five playbooks + an automation to run KOI scripts on Cortex-Agent endpoints."],
   ];
   const lw = 7.4;
   rows.forEach(([g, t, d], i) => {
@@ -171,8 +171,8 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
   const tracks = [
     ["Detect & respond", ORANGE, "Each KOI alert is triaged, investigated and routed — with response gated on an analyst.",
       "Seven playbooks: triage, two investigations, enrichment, response and hunting."],
-    ["Operate at fleet scale", CYAN, "Run KOI script packages on Cortex-Agent endpoints on a schedule, targeted by OS, group or hostname.",
-      "Three playbooks, configured entirely through a JSON List."],
+    ["Operate at fleet scale", CYAN, "Run KOI script packages on Cortex-Agent endpoints on a schedule, with per-endpoint tracking so even groups over 100 are fully covered.",
+      "Five playbooks + a tracker automation, driven by two Jobs and one JSON List."],
   ];
   tracks.forEach(([t, c, body, detail], i) => {
     const ty = 2.55 + i * 1.90;
