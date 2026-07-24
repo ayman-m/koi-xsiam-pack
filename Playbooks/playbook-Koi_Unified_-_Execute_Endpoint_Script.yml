@@ -305,29 +305,29 @@ tasks:
     task:
       id: c0ffee03-0000-4000-8000-000000000006
       version: -1
-      name: Get target endpoints
-      description: Gets a list of endpoints, according to the passed filters.
+      name: Select due endpoints
+      description: Ask KoiScanTracker for up to max due, currently-connected endpoints from the tracker.
       iscommand: true
       brand: ""
-      script: '|||core-get-endpoints'
+      script: 'KoiScanTracker'
       type: regular
+      scriptName: KoiScanTracker
     scriptarguments:
-      platform:
+      action:
+        simple: select
+      tracker_list:
+        simple: ${inputs.tracker_list}
+      rescan_interval_hours:
         complex:
-          root: inputs.endpoint_os
+          root: inputs.rescan_interval_hours
           transformers:
-          - operator: toLowerCase
-      group_name:
-        complex:
-          root: inputs.endpoint_groups
-      hostname:
-        complex:
-          root: inputs.endpoint_hostnames
-      status:
-        simple: connected
-      isolate:
-        simple: unisolated
-      limit:
+          - operator: SetIfEmpty
+            args:
+              applyIfEmpty: {}
+              defaultValue:
+                value:
+                  simple: '720'
+      max:
         complex:
           root: inputs.max_endpoints
           transformers:
@@ -339,9 +339,9 @@ tasks:
                   simple: '100'
     nexttasks:
       '#error#':
-      - "15"
+      - '15'
       '#none#':
-      - "7"
+      - '7'
     separatecontext: false
     continueonerror: true
     continueonerrortype: errorPath
@@ -366,8 +366,8 @@ tasks:
     task:
       id: c0ffee03-0000-4000-8000-000000000007
       version: -1
-      name: Connected endpoints found?
-      description: Only connected (online) endpoints are eligible for script execution.
+      name: Any due endpoints?
+      description: Proceed only when at least one due, connected endpoint was returned.
       iscommand: false
       brand: ""
       type: condition
@@ -377,26 +377,16 @@ tasks:
       - - left:
             iscontext: true
             value:
-              complex:
-                root: Core.Endpoint
-                filters:
-                - - left:
-                      iscontext: true
-                      value:
-                        simple: Core.Endpoint.endpoint_status
-                    operator: isEqualString
-                    right:
-                      value:
-                        simple: CONNECTED
-                accessor: endpoint_id
-          operator: isNotEmpty
+              simple: KoiScanTracker.Select.connected_count
+          operator: greaterThan
           right:
-            value: {}
+            value:
+              simple: '0'
     nexttasks:
       '#default#':
-      - "16"
+      - '16'
       "yes":
-      - '20'
+      - '8'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -429,19 +419,8 @@ tasks:
     scriptarguments:
       endpoint_ids:
         complex:
-          root: Core.Endpoint
-          filters:
-          - - left:
-                iscontext: true
-                value:
-                  simple: Core.Endpoint.endpoint_status
-              operator: isEqualString
-              right:
-                value:
-                  simple: CONNECTED
-          accessor: endpoint_id
+          root: KoiScanTracker.Select.due_connected
           transformers:
-          - operator: uniq
           - operator: join
             args:
               separator:
@@ -472,9 +451,9 @@ tasks:
                   simple: "1800"
     nexttasks:
       '#error#':
-      - "9"
+      - '9'
       '#none#':
-      - "10"
+      - '10'
     separatecontext: false
     continueonerror: true
     continueonerrortype: errorPath
@@ -570,7 +549,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - "19"
+      - '24'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -835,7 +814,7 @@ tasks:
     task:
       id: c0ffee03-0000-4000-8000-00000000000f
       version: -1
-      name: Set ScriptResult - Endpoint query failed
+      name: Set ScriptResult - Select failed
       description: Set a value in context under the key you entered.
       iscommand: false
       brand: ""
@@ -859,7 +838,7 @@ tasks:
                   simple: |-
                     {
                       "ok": false,
-                      "reason": "Failed to query endpoints (core-get-endpoints)."
+                      "reason": "Failed to select due endpoints (KoiScanTracker)."
                     }
               template_type:
                 value:
@@ -869,7 +848,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - "11"
+      - '11'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -893,7 +872,7 @@ tasks:
     task:
       id: c0ffee03-0000-4000-8000-000000000010
       version: -1
-      name: Set ScriptResult - No matching endpoints
+      name: Set ScriptResult - Nothing due
       description: Set a value in context under the key you entered.
       iscommand: false
       brand: ""
@@ -916,9 +895,9 @@ tasks:
                 value:
                   simple: |-
                     {
-                      "ok": false,
+                      "ok": true,
                       "skipped": true,
-                      "reason": "No connected, unisolated endpoints matched the target filters (os/groups/hostnames) — nothing to do this run."
+                      "reason": "No endpoints are currently due for scan."
                     }
               template_type:
                 value:
@@ -928,7 +907,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - "11"
+      - '23'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -976,7 +955,7 @@ tasks:
                   simple: |-
                     {
                       "ok": false,
-                      "reason": "Script execution could not be dispatched (core-script-run returned an error and no action was created). See the error entries in the run's war room."
+                      "reason": "Script dispatch failed (core-script-run) — no action was created. See the war-room error entries."
                     }
               template_type:
                 value:
@@ -994,58 +973,6 @@ tasks:
         "position": {
           "x": 2200,
           "y": 1885
-        }
-      }
-    note: false
-    timertriggers: []
-    ignoreworker: false
-    skipunavailable: false
-    quietmode: 0
-    isoversize: false
-    isautoswitchedtoquietmode: false
-  '20':
-    id: "20"
-    taskid: c0ffee03-0000-4000-8000-000000000020
-    type: regular
-    task:
-      id: c0ffee03-0000-4000-8000-000000000020
-      version: -1
-      name: Record targeted endpoint count
-      description: Captures how many connected endpoints this run dispatches to, for reporting.
-      iscommand: false
-      brand: ""
-      script: SetAndHandleEmpty
-      type: regular
-    scriptarguments:
-      key:
-        simple: koi_target_count
-      value:
-        complex:
-          root: Core.Endpoint
-          filters:
-          - - left:
-                iscontext: true
-                value:
-                  simple: Core.Endpoint.endpoint_status
-              operator: isEqualString
-              right:
-                value:
-                  simple: CONNECTED
-          accessor: endpoint_id
-          transformers:
-          - operator: count
-      append:
-        simple: "false"
-    nexttasks:
-      '#none#':
-      - '8'
-    separatecontext: false
-    continueonerrortype: ""
-    view: |-
-      {
-        "position": {
-          "x": 1985,
-          "y": 1500
         }
       }
     note: false
@@ -1140,7 +1067,7 @@ tasks:
         simple: "false"
     nexttasks:
       '#none#':
-      - '19'
+      - '24'
     separatecontext: false
     continueonerrortype: ""
     view: |-
@@ -1164,7 +1091,7 @@ tasks:
     task:
       id: c0ffee03-0000-4000-8000-000000000023
       version: -1
-      name: Record endpoint count
+      name: Record scan counts
       description: Records the number of endpoints targeted.
       iscommand: false
       brand: ""
@@ -1172,9 +1099,9 @@ tasks:
       type: regular
     scriptarguments:
       key:
-        simple: ScriptResult.endpoint_count
+        simple: ScriptResult.scanned_count
       value:
-        simple: ${koi_target_count}
+        simple: ${KoiScanTracker.Select.connected_count}
       append:
         simple: "false"
     nexttasks:
@@ -1187,6 +1114,54 @@ tasks:
         "position": {
           "x": 1770,
           "y": 2255
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '24':
+    id: "24"
+    taskid: c0ffee03-0000-4000-8000-000000000024
+    type: regular
+    task:
+      id: c0ffee03-0000-4000-8000-000000000024
+      version: -1
+      name: Mark endpoints scanned
+      description: Stamp last_scan=now for the dispatched endpoints (mark-on-dispatch).
+      iscommand: true
+      brand: ""
+      script: 'KoiScanTracker'
+      type: regular
+      scriptName: KoiScanTracker
+    scriptarguments:
+      action:
+        simple: mark
+      tracker_list:
+        simple: ${inputs.tracker_list}
+      endpoint_ids:
+        complex:
+          root: KoiScanTracker.Select.due_connected
+          transformers:
+          - operator: join
+            args:
+              separator:
+                value:
+                  simple: ','
+    nexttasks:
+      '#none#':
+      - '19'
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 1770,
+          "y": 1145
         }
       }
     note: false
@@ -1219,21 +1194,6 @@ inputs:
   required: false
   description: The UUID of the script to execute. Takes precedence over script_name.
   playbookInputQuery:
-- key: endpoint_os
-  value: {}
-  required: true
-  description: Target OS platform (Windows, macOS, or Linux — case-insensitive).
-  playbookInputQuery:
-- key: endpoint_groups
-  value: {}
-  required: false
-  description: Endpoint group names to limit execution to. Either this or endpoint_hostnames must be provided.
-  playbookInputQuery:
-- key: endpoint_hostnames
-  value: {}
-  required: false
-  description: Endpoint hostnames to limit execution to. Either this or endpoint_groups must be provided.
-  playbookInputQuery:
 - key: polling_interval_in_seconds
   value:
     simple: "60"
@@ -1251,6 +1211,18 @@ inputs:
     simple: "100"
   required: false
   description: "Maximum endpoints to target in one run, passed to core-get-endpoints as `limit`. VERIFIED HARD CAP: core-get-endpoints rejects any value above 100 with 'Search size must fulfill the requirement: 0 < search_size <= 100' (HTTP 500). Do NOT set this above 100. Without a limit the command returns only 30, so 100 is the safe maximum for a single run. Covering a group larger than 100 requires paginating the endpoint query (page/page_size) — see the release note; that is a separate change."
+  playbookInputQuery:
+- key: tracker_list
+  value:
+    simple: ""
+  required: false
+  description: "Name of the CSV List used as this scope's scan tracker (e.g. \"Koi Scan Tracker - Windows\")."
+  playbookInputQuery:
+- key: rescan_interval_hours
+  value:
+    simple: "720"
+  required: false
+  description: "Hours after which a scanned endpoint becomes due again."
   playbookInputQuery:
 outputs:
 - contextPath: ScriptResult

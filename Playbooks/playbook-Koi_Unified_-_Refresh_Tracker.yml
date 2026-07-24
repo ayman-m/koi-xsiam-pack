@@ -1,0 +1,283 @@
+id: Koi Unified - Refresh Tracker
+version: -1
+fromversion: 6.10.0
+name: Koi Unified - Refresh Tracker
+description: |-
+  Refresh job for the scan-coverage tracker. Reads the "Koi Script Runner" List and, for every entry, enumerates its endpoint group/OS and upserts membership into the entry's tracker List. Attach to a time-triggered Job that runs less often than the scan job (e.g. hourly).
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: c0ffee01-0000-4000-8000-000000000000
+    type: start
+    task:
+      id: c0ffee01-0000-4000-8000-000000000000
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      type: start
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "1":
+    id: "1"
+    taskid: c0ffee01-0000-4000-8000-000000000001
+    type: regular
+    task:
+      id: c0ffee01-0000-4000-8000-000000000001
+      version: -1
+      name: Load the "Koi Script Runner" configuration
+      description: Loads and parses the JSON configuration from the "Koi Script Runner" List.
+      iscommand: false
+      brand: ""
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: config_entries
+      value:
+        complex:
+          root: lists
+          accessor: Koi Script Runner
+          transformers:
+          - operator: ParseJSON
+      append:
+        simple: "false"
+    nexttasks:
+      '#error#':
+      - "5"
+      '#none#':
+      - "2"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 220
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: c0ffee01-0000-4000-8000-000000000002
+    type: condition
+    task:
+      id: c0ffee01-0000-4000-8000-000000000002
+      version: -1
+      name: Configuration entries found?
+      description: Verifies the List parsed into at least one configuration entry.
+      iscommand: false
+      brand: ""
+      type: condition
+    conditions:
+    - label: "yes"
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: config_entries
+          operator: isNotEmpty
+          right:
+            value: {}
+    nexttasks:
+      '#default#':
+      - "5"
+      "yes":
+      - "3"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 470,
+          "y": 405
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: c0ffee01-0000-4000-8000-000000000003
+    type: playbook
+    task:
+      id: c0ffee01-0000-4000-8000-000000000003
+      version: -1
+      name: Refresh the tracker for every entry
+      description: Enumerates each configuration entry's group/OS into its tracker List.
+      playbookId: Koi Unified - Refresh Entry
+      iscommand: false
+      brand: ""
+      type: playbook
+    scriptarguments:
+      config_entry:
+        complex:
+          root: config_entries
+    loop:
+      forEach: true
+      iscommand: false
+      exitCondition: ""
+      wait: 1
+      max: 100
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 590
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: c0ffee01-0000-4000-8000-000000000004
+    type: regular
+    task:
+      id: c0ffee01-0000-4000-8000-000000000004
+      version: -1
+      name: Close
+      description: commands.local.cmd.close.inv
+      iscommand: true
+      brand: Builtin
+      script: Builtin|||closeInvestigation
+      type: regular
+    scriptarguments: {}
+    nexttasks:
+      '#none#':
+      - "6"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 775
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: c0ffee01-0000-4000-8000-000000000005
+    type: regular
+    task:
+      id: c0ffee01-0000-4000-8000-000000000005
+      version: -1
+      name: Report configuration error
+      description: Prints an error entry with a given message.
+      iscommand: false
+      brand: ""
+      script: PrintErrorEntry
+      type: regular
+    scriptarguments:
+      message:
+        simple: 'Koi Script Runner: no valid configuration found. Create a JSON List named "Koi Script Runner" containing an array of configuration entries (see the playbook description for the schema).'
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 590
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: c0ffee01-0000-4000-8000-000000000006
+    type: title
+    task:
+      id: c0ffee01-0000-4000-8000-000000000006
+      version: -1
+      name: Done
+      iscommand: false
+      brand: ""
+      type: title
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 960
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 990,
+        "width": 660,
+        "x": 50,
+        "y": 50
+      }
+    }
+  }
+inputs: []
+outputs: []
+tags:
+- koi
+quiet: false

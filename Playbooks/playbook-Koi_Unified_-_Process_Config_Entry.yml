@@ -245,18 +245,16 @@ tasks:
         simple: ${inputs.config_entry.script.name}
       script_uuid:
         simple: ${inputs.config_entry.script.uuid}
-      endpoint_os:
-        simple: ${inputs.config_entry.target.endpoint_os}
-      endpoint_groups:
-        simple: ${inputs.config_entry.target.endpoint_groups}
-      endpoint_hostnames:
-        simple: ${inputs.config_entry.target.endpoint_hostnames}
       polling_interval_in_seconds:
         simple: ${inputs.config_entry.script.polling_interval_in_seconds}
       timeout_in_seconds:
         simple: ${inputs.config_entry.script.timeout_in_seconds}
       max_endpoints:
         simple: ${inputs.config_entry.target.max_endpoints}
+      tracker_list:
+        simple: ${inputs.config_entry.target.tracker_list}
+      rescan_interval_hours:
+        simple: ${inputs.config_entry.target.rescan_interval_hours}
     loop:
       iscommand: false
       exitCondition: ""
