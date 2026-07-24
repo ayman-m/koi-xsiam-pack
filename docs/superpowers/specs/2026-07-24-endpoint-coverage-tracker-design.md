@@ -134,17 +134,45 @@ Tracker at 1000 endpoints ≈ 60 KB — fine. Past ~10k, whole-list read/write p
 heavy and the concurrency race grows likelier; that would need a real datastore. Out of
 scope here; documented as the known ceiling.
 
+## Implementation approach (revised — user-approved 2026-07-24)
+
+The tracker's date arithmetic and CSV upsert are done in a single small **automation**
+(`KoiScanTracker`), not in playbook DT. Rationale: date-diff and list upsert are trivial and
+unit-testable in Python, and fragile/unverifiable in stock transformers through the available
+channel. The automation owns all List I/O and the endpoint walk; the playbooks stay thin
+orchestration. This adds one code content item (python3 docker) to a previously playbook-only
+pack — an accepted trade for reliability and testability.
+
+`KoiScanTracker` is action-dispatched:
+
+- `action=refresh` — enumerate the group via the **raw endpoints API** paged
+  `search_from`/`search_to` in 100-row windows (`demisto.internalHttpRequest`, authenticated
+  inside the platform), append-only upsert into the tracker List. The `core-get-endpoints`
+  **command cannot** page past 100 (its `first_seen` arg does not filter — verified: a pivot
+  returned all 7, not 4), which is why refresh uses the raw API. Verified against the tenant:
+  windowed paging gives complete coverage (`unique == total_count`).
+- `action=select` — read tracker, filter to os, compute the due set (empty `last_scan` or
+  `now − last_scan ≥ interval_hours`), sort stale-first, cap at max, confirm currently connected
+  via a targeted `core-get-endpoints` by id-list, return the runnable ids.
+- `action=mark` — set `last_scan = now` for the given ids in the tracker List.
+
+Pure functions (`parse_tracker`, `emit_tracker`, `compute_due`, `upsert_members`, `mark_scanned`)
+are unit-tested locally with no tenant dependency; thin demisto wrappers call `getList`/`setList`/
+`core-get-endpoints`.
+
 ## Content inventory
 
 | Item | Change |
 |---|---|
-| `Koi Unified - Refresh Tracker` | new (Job A entry, loops List entries) |
-| `Koi Unified - Refresh Group Membership` | new (per-entry first_seen walk → upsert) |
+| `KoiScanTracker` (automation) | **new** — owns tracker List I/O, date logic, the first_seen walk |
+| `Koi Unified - Refresh Tracker` | new (Job A entry, loops List entries → `KoiScanTracker action=refresh`) |
 | `Koi Unified - Script Runner` | Job B entry (role unchanged) |
-| `Koi Unified - Process Config Entry` | reads tracker, computes due set |
-| `Koi Unified - Execute Endpoint Script` | takes due ids, confirms connected, runs, writes last_scan |
+| `Koi Unified - Process Config Entry` | `KoiScanTracker action=select` → run → `action=mark` |
+| `Koi Unified - Execute Endpoint Script` | takes selected ids, runs, returns dispatched ids |
 | `Koi Scan Tracker` (List) | new external prerequisite (CSV) |
 | `rescan_interval_hours` | new optional List field, default 720 |
+
+(The separate `Refresh Group Membership` sub-playbook is dropped — the walk lives in the automation.)
 
 ## Testing plan (on the ayman tenant, 8 endpoints)
 
