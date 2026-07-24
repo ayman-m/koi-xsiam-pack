@@ -7,13 +7,28 @@ into one architecture.
 
 ## Architecture
 
+Coverage is **tracker-driven**: a per-scope CSV List (`endpoint_id,last_scan`) records when each endpoint
+was last scanned. Two time-triggered Jobs share the one `Koi Script Runner` config List:
+
 ```
-Job (time-triggered)
+Scan Job (frequent — e.g. every 10 min)
  └─ Koi Unified - Script Runner            (main; reads the "Koi Script Runner" List)
      └─ loop: for each configuration entry (separate context per entry)
          └─ Koi Unified - Process Config Entry   (validate, notify, cleanup)
-             └─ Koi Unified - Execute Endpoint Script  (resolve UUID, target, run, ScriptResult)
+             └─ Koi Unified - Execute Endpoint Script
+                 └─ KoiScanTracker select  → up to `max` due, connected, right-OS ids
+                    → core-script-run       → dispatch the script (mark-on-dispatch)
+                    → KoiScanTracker mark    → stamp last_scan=now
+
+Refresh Job (infrequent — e.g. hourly)
+ └─ Koi Unified - Refresh Tracker           (reads the same List)
+     └─ loop: for each configuration entry
+         └─ Koi Unified - Refresh Entry       (KoiScanTracker refresh: walk the group
+            paged past 100 via core-api-post, append-only upsert into the tracker List)
 ```
+
+The `KoiScanTracker` automation owns all tracker List I/O plus the due / connected / OS-safe / mark logic,
+so the playbooks stay thin. It needs the built-in **Core REST API** integration (for `core-api-post`).
 
 ## Configuration — the `Koi Script Runner` List (JSON array)
 
@@ -30,7 +45,9 @@ Job (time-triggered)
     "target": {
       "endpoint_groups": ["KOI Endpoints"],
       "endpoint_hostnames": [],
-      "endpoint_os": "Windows"
+      "endpoint_os": "Windows",
+      "tracker_list": "Koi Scan Tracker - Windows",
+      "rescan_interval_hours": 720
     },
     "notification": {
       "sendmail_instance": { "name": "internal-smtp" },
@@ -40,14 +57,16 @@ Job (time-triggered)
 ]
 ```
 
-Required per entry: `script.name` **or** `script.uuid`, `target.endpoint_os`,
-and at least one of `target.endpoint_groups` / `target.endpoint_hostnames`.
-Everything else is optional.
+Required per entry: `script.name` **or** `script.uuid`, `target.endpoint_os`, `target.tracker_list`
+(the CSV List this scope's coverage is tracked in — Refresh creates it if missing), and at least one of
+`target.endpoint_groups` / `target.endpoint_hostnames`. `target.rescan_interval_hours` defaults to 720
+(30 days). Everything else is optional.
 
-> **`target.max_endpoints`** (optional, default 500) caps how many endpoints one run targets.
-> It is passed to `core-get-endpoints` as `limit`, default **100** (the verified maximum — the
-> command returns HTTP 500 above 100). Without it the command returns only 30. Covering a group
-> larger than 100 in one run requires paginating the endpoint query, a separate change.
+> **`target.max_endpoints`** (optional, default 100) caps how many endpoints one Scan run dispatches to —
+> it is the `max` passed to `KoiScanTracker select`. **100 is the ceiling** (`core-get-endpoints`, used for
+> the connected-check, returns HTTP 500 above 100). A group larger than that is covered across successive
+> Scan runs: each run takes the next batch of *due* endpoints, so the whole fleet is reached over time and
+> then re-scanned every `rescan_interval_hours`.
 
 ## What was taken from each source
 
@@ -70,10 +89,18 @@ Everything else is optional.
 - Notifications are brand-agnostic (`|||send-mail` + optional `using` instance)
   instead of hard-binding one mail integration.
 - Per-entry polling/timeout overrides with sane defaults (60 s / 1800 s).
-- Three-state result per entry: `ok` (script ran), `skipped` (valid entry but
-  no connected endpoints currently match — logged as info, **no failure
+- Three-state result per entry: `ok` (script dispatched), `skipped` (valid entry but
+  no due, connected endpoints currently match — logged as info, **no failure
   email**), and failed (real error — failure email sent). Keeps recurring
   jobs quiet for not-yet-populated OS scopes without hiding real failures.
+- **Tracker-driven coverage** (added in 1.5.0): a per-scope CSV List tracks `last_scan`
+  per endpoint, so each endpoint is scanned once then re-scanned only after
+  `rescan_interval_hours`, and groups larger than the 100-endpoint query cap are fully
+  covered across successive runs — the whole fleet, not just the first 100.
+- **Mark-on-dispatch**: an endpoint is marked scanned the moment the action is *created*,
+  not when Action Center finishes. A poll timeout therefore logs `STILL RUNNING` and never
+  emails — removing the false-positive-failure path by construction. Offline / wrong-OS /
+  not-in-inventory rows are never dispatched to and stay due for the next run.
 
 ## Alert triage playbooks
 
@@ -127,10 +154,12 @@ Built on the read-only + governance commands, these extend triage into response 
 
 | Dependency | Where | Requirement |
 |---|---|---|
-| KOI script package(s) | Action Center → Scripts Library | Upload manually; Library name must match `script.name` exactly (or pin `script.uuid`) |
+| Core REST API integration | Automation & Feed Integrations | **Enabled** — `KoiScanTracker` refresh calls `core-api-post` to page the group past 100; without it Refresh cannot build the tracker |
+| KOI script package(s) | Action Center → Scripts Library | Upload manually; Library name must match `script.name` exactly (or pin `script.uuid`). Must be **parameterless** — the run task passes no `parameters_values` |
 | Endpoint group(s) | Endpoints → Endpoint Groups | Groups in `target.endpoint_groups` must exist and contain the intended agents |
 | Target agents | Endpoints | Installed, **connected**, unisolated, OS matching `endpoint_os` — otherwise the entry is `skipped` |
 | Configuration List | Settings → Object Setup → Lists | JSON List named exactly `Koi Script Runner` |
+| Tracker List(s) | Settings → Object Setup → Lists | Named by each entry's `target.tracker_list` — **auto-created** by the first Refresh run; no manual step |
 | Mail-sender instance | Automation & Feed Integrations | Only for notifications; must be enabled and, when `sendmail_instance.name` is set, match that name exactly |
 
 All references bind by name at run time: renaming any of these without updating the
@@ -146,6 +175,12 @@ configuration" task in the main playbook.
 
 ## Job setup
 
-Attach **`Koi Unified - Script Runner`** to a time-triggered Job
-(Investigation & Response → Automation → Jobs). The playbook closes its own
-investigation at the end of every run.
+Create **two** time-triggered Jobs (Investigation & Response → Automation → Jobs); each playbook
+closes its own investigation at the end of every run:
+
+- **Scan** — attach **`Koi Unified - Script Runner`**, frequent (e.g. every 10 minutes).
+- **Refresh** — attach **`Koi Unified - Refresh Tracker`**, less frequent (e.g. hourly).
+
+Schedule them at non-overlapping times. Refresh is append-only (it never writes `last_scan`) and
+Scan only updates existing rows, so an occasional overlap self-heals on the next cycle. Run Refresh
+at least once before the first Scan, or the tracker is empty and Scan has nothing due to do.

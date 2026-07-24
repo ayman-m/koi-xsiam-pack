@@ -44,34 +44,39 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
 
 ## Script Runner playbooks
 
-Three playbooks run KOI script packages (e.g., the KOI deployment script) on Cortex-Agent endpoints on a schedule — attached to a time-triggered **Job** and configured entirely through a JSON **List**, so retargeting never means editing a playbook:
+Five playbooks plus the `KoiScanTracker` automation run KOI script packages (e.g., the KOI deployment script) on Cortex-Agent endpoints on a schedule — driven by **two** time-triggered Jobs and configured entirely through a JSON **List**, so retargeting never means editing a playbook. Coverage is **tracker-driven**: a per-scope CSV List records when each endpoint was last scanned, so every endpoint is scanned once and then re-scanned only after a configurable interval — and a group larger than the 100-endpoint query cap is still fully covered over successive runs.
 
-| Playbook | Role |
+| Playbook / Script | Role |
 |---|---|
-| `Koi Unified - Script Runner` | Job entry point — loads the `Koi Script Runner` List, loops over entries |
+| `Koi Unified - Script Runner` | **Scan** job entry point — loads the `Koi Script Runner` List, loops over entries |
 | `Koi Unified - Process Config Entry` | Per entry: `disabled` flag, validation (invalid entries are *reported*), notification, cleanup |
-| `Koi Unified - Execute Endpoint Script` | Resolves script name→UUID, targets **connected, unisolated** endpoints by OS/groups/hostnames, runs with polling, returns `ScriptResult` |
+| `Koi Unified - Execute Endpoint Script` | Asks `KoiScanTracker` for up to `max` **due, connected, right-OS** endpoints, runs the script on them, **marks** them scanned, returns `ScriptResult` |
+| `Koi Unified - Refresh Tracker` | **Refresh** job entry point — loads the same List, loops over entries |
+| `Koi Unified - Refresh Entry` | Per entry: walks the endpoint group (paged past 100 via the Core REST API) and append-only upserts membership into the scope's tracker List |
+| `KoiScanTracker` (automation) | Owns the tracker List I/O and the due / connected / OS-safe / mark logic — dispatched as `refresh` \| `select` \| `mark` |
 
-Each List entry couples one script with one OS scope — enforced at dispatch time via the endpoint query's platform filter, so a Windows script can never land on a Mac even in a mixed group:
+Each List entry couples one script with one OS scope and one tracker List. The `KoiScanTracker` **select** filters its connected-check by `endpoint_os`, so a Windows script can never land on a Mac even if a wrong-OS row ends up in the tracker:
 
 ```json
 [
   { "script": { "name": "KOI Deployment Script - Windows" },
-    "target": { "endpoint_groups": ["KOI Endpoints"], "endpoint_hostnames": [], "endpoint_os": "Windows" },
+    "target": { "endpoint_groups": ["KOI Endpoints"], "endpoint_hostnames": [], "endpoint_os": "Windows",
+                "tracker_list": "Koi Scan Tracker - Windows", "rescan_interval_hours": 720 },
     "notification": { "sendmail_instance": { "name": "internal-smtp" }, "recipients": ["ops@example.com"] } }
 ]
 ```
 
-Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800), `target.max_endpoints` (100). Run outcomes are three-state: **ok** (executed, `action_id` returned, success email), **skipped** (no connected endpoints match the scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
+Required per entry now include **`target.tracker_list`** (the CSV List this scope's coverage is tracked in — the Refresh job creates it if missing) and **`target.rescan_interval_hours`** (hours before a scanned endpoint is due again; default 720). Optional per entry: `disabled`, `script.uuid`, `script.polling_interval_in_seconds` (60), `script.timeout_in_seconds` (1800), `target.max_endpoints` (100, the per-run cap). Run outcomes are three-state: **ok** (dispatched, `action_id` returned, success email), **skipped** (no due, connected endpoints in scope right now — info entry, *no* email), or **failed** (real error with a precise reason, failure email). Mark-on-dispatch means a poll timeout is *not* a failure — it logs STILL RUNNING and never emails. Full details in [`Playbooks/README.md`](Playbooks/README.md) and §10 of the customer guide.
 
 **Before the first run — referenced by name, NOT shipped in this pack.** Create these on the tenant first, with names matching the List exactly:
 
-- **The KOI script package(s)** — upload to *Action Center → Scripts Library* yourself; the Library name must equal `script.name` character-for-character (or pin `script.uuid` to be rename-proof)
+- **The Core REST API integration** — configured and enabled. `KoiScanTracker` refresh calls `core-api-post` to page the group past the 100-endpoint cap; without it, Refresh cannot build the tracker.
+- **The KOI script package(s)** — upload to *Action Center → Scripts Library* yourself; the Library name must equal `script.name` character-for-character (or pin `script.uuid` to be rename-proof). The script must be **parameterless** — the run task passes no `parameters_values`.
 - **The endpoint group(s)** named in `target.endpoint_groups` — must exist and contain the intended agents (connected, unisolated, OS matching `endpoint_os`)
 - **The List** — named exactly `Koi Script Runner`
 - **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
 
-> **Large groups (over 100 endpoints) — use the scan-coverage tracker.** `core-get-endpoints` rejects any `limit` above 100 (HTTP 500) and `core-script-run` requires explicit endpoint ids, so a single run cannot cover a bigger group. The `KoiScanTracker` automation solves this: a **Refresh** job enumerates the whole group (paged past 100 via the Core REST API) into a per-scope tracker List, and each **Scan** run takes up to 100 endpoints that are *due* — never scanned, or `last_scan` older than `target.rescan_interval_hours` — runs the script, and marks them. Over successive runs the whole fleet is covered, then re-scanned each interval. Requires the **Core REST API** integration. New per-entry List fields: `target.tracker_list` and `target.rescan_interval_hours` (default 720). See `ReleaseNotes/1_5_0.md`.
+> **How coverage works (and why a group over 100 is fine).** `core-get-endpoints` rejects any `limit` above 100 (HTTP 500) and `core-script-run` requires explicit endpoint ids, so a single run cannot cover a bigger group. The tracker solves this with two jobs: the **Refresh** job (`Koi Unified - Refresh Tracker`, infrequent — e.g. hourly) enumerates the whole group paged past 100 into a per-scope tracker List; the **Scan** job (`Koi Unified - Script Runner`, frequent — e.g. every 10 min) takes up to `max` endpoints that are *due* — never scanned, or `last_scan` older than `target.rescan_interval_hours` — dispatches the script, and marks them. Over successive runs the whole fleet is covered, then re-scanned each interval. Schedule the two jobs at non-overlapping times (Refresh is append-only and self-heals, so an occasional overlap is harmless). See `ReleaseNotes/1_5_0.md`.
 
 Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
 
@@ -121,14 +126,14 @@ Which path you pick decides whether **event collection works at all**:
 | Path | What lands on the tenant | Events flow? | Use when |
 |---|---|---|---|
 | **`demisto-sdk … --xsiam`** | Everything, at the version you were sent | ✅ | The normal path |
-| **Pre-built `dist/Koi.zip`** | Integration + the 3 Script Runner playbooks only | ❌ | Not for XSIAM — see below |
+| **Pre-built `dist/Koi.zip`** | Integration + an old 3-playbook Script Runner only | ❌ | Not for XSIAM — see below |
 | **Manual per-item** | Only what you import yourself | ❌ unless you add the rules | Partial adoption, e.g. Script Runner only |
 
 > ⚠️ **`dist/Koi.zip` will not collect events.** It was built for a different marketplace target: inside
 > it the integration carries `isfetchevents: false`, and it ships **no parsing rules, no modeling rules
 > and no dashboard**. Upload it to XSIAM and every
 > command works while `koi_koi_raw` stays empty forever — which looks like a collector bug but is just
-> the wrong artifact. It is also stale relative to this repo (3 playbooks, not 10). For working event
+> the wrong artifact. It is also stale relative to this repo (an old 3-playbook Script Runner, not the current 12 playbooks). For working event
 > collection, upload with the SDK.
 
 **With demisto-sdk (the normal path):**
@@ -148,36 +153,48 @@ To build from source, place this pack at `Packs/Koi/` inside a content-repo scaf
 `.private-repo-settings`, `Tests/secrets_white_list.json`, and `Packs/ApiModules/Scripts/ContentClientApiModule/`
 copied from demisto/content), then `demisto-sdk zip-packs -i Packs/Koi -o zipped`.
 
-**Manually (adopt individual items):** import in dependency order — playbooks (executor → processor → main)
-via Automation → Playbooks → Import; the `Koi Script Runner` List via Settings → Object Setup → Lists; the
-Job via Automation → Jobs; parsing/modeling rules as user-defined rules targeting `koi_koi_raw`; the
-dashboard via Dashboards & Reports → Import. Keep item names unchanged — references bind by name.
+**Manually (adopt individual items):** import in dependency order — the `KoiScanTracker` automation, then
+the playbooks called-before-caller (Execute Endpoint Script → Process Config Entry → Refresh Entry →
+Refresh Tracker → Script Runner) via Automation → Playbooks → Import; the `Koi Script Runner` List via
+Settings → Object Setup → Lists; the **two** Jobs (Scan + Refresh) via Automation → Jobs; parsing/modeling
+rules as user-defined rules targeting `koi_koi_raw`; the dashboard via Dashboards & Reports → Import. Keep
+item names unchanged — references bind by name.
 
 > Pack-installed items become system-owned: ship later changes as a new pack version (bump `currentVersion`, add a release note, re-upload).
 
 ### Just the Script Runner — the minimal install
 
 If all you want is to **run KOI scripts on endpoints from a scheduled Job**, you do not need the rest of
-the pack. The three Script Runner playbooks call **no `koi-*` command at all** — only `core-get-scripts`,
-`core-get-endpoints` and `core-script-run` — so there is no KOI API key, no integration instance, no
-parsing/modeling rules and no dashboard involved.
+the pack. These playbooks call **no `koi-*` command at all** — only `core-get-scripts`, `core-get-endpoints`,
+`core-script-run` and `core-api-post` — so there is no KOI API key, no KOI integration instance, no
+parsing/modeling rules and no dashboard involved. The one integration you **do** need is the built-in
+**Core REST API** (for `core-api-post`, used by Refresh to page the group past 100).
 
-Import exactly these four items, **in this order** (sub-playbooks bind by name, so a parent imported first
-points at something that does not exist yet):
+Import exactly these six content items plus the List, **in this order** (everything binds by name, so import
+what gets called before what calls it — automation first, then leaf sub-playbooks, then their parents):
 
 | # | Item | Where |
 |---|---|---|
-| 1 | `Koi Unified - Execute Endpoint Script` | Automation → Playbooks → Import |
-| 2 | `Koi Unified - Process Config Entry` | Automation → Playbooks → Import |
-| 3 | `Koi Unified - Script Runner` | Automation → Playbooks → Import |
-| 4 | `Koi Script Runner` (JSON List) | Settings → Object Setup → Lists → New List |
+| 1 | `KoiScanTracker` (automation) | Automation → Scripts → Import |
+| 2 | `Koi Unified - Execute Endpoint Script` | Automation → Playbooks → Import |
+| 3 | `Koi Unified - Process Config Entry` | Automation → Playbooks → Import |
+| 4 | `Koi Unified - Refresh Entry` | Automation → Playbooks → Import |
+| 5 | `Koi Unified - Refresh Tracker` | Automation → Playbooks → Import |
+| 6 | `Koi Unified - Script Runner` | Automation → Playbooks → Import |
+| 7 | `Koi Script Runner` (JSON List) | Settings → Object Setup → Lists → New List |
 
-Then create the Job: Automation → Jobs → New Job, **Time-triggered**, playbook `Koi Unified - Script Runner`.
+Then create **two** Time-triggered Jobs (Automation → Jobs → New Job):
 
-What you still need on the tenant: the **KOI script package** in Action Center → Scripts Library (its name
-must equal `script.name` in the List exactly, or pin `script.uuid`), an **endpoint group** containing
-connected, unisolated agents matching `target.endpoint_os`, and — only if you configure notifications — an
-enabled **mail-sender instance**.
+- **Scan** — playbook `Koi Unified - Script Runner`, frequent (e.g. every 10 minutes).
+- **Refresh** — playbook `Koi Unified - Refresh Tracker`, less frequent (e.g. hourly).
+
+The per-scope tracker Lists (e.g. `Koi Scan Tracker - Windows`, named by each entry's `target.tracker_list`)
+are **created automatically** by the first Refresh run — you do not pre-create them.
+
+What you still need on the tenant: the **Core REST API integration** enabled; the **KOI script package** in
+Action Center → Scripts Library (its name must equal `script.name` in the List exactly, or pin `script.uuid`;
+it must be **parameterless**); an **endpoint group** containing connected, unisolated agents matching
+`target.endpoint_os`; and — only if you configure notifications — an enabled **mail-sender instance**.
 
 ## Validating a deployment
 
