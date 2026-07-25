@@ -14,7 +14,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as total_alert\n| view graph type = single subtype = standard yaxis = total_alert scale_threshold(\"#919291\",\"#ff0082\",\"400\") dataunit = \"Alert\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as total_alert\n| view graph type = single subtype = standard yaxis = total_alert scale_threshold(\"#919291\",\"#ff0082\",\"400\") dataunit = \"Alert\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -62,7 +62,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count_distinct(device_id) as devices\n| view graph type = single subtype = standard yaxis = devices scale_threshold(\"#0054f5\") dataunit = \"Devices\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(device_id) as devices\n| view graph type = single subtype = standard yaxis = devices scale_threshold(\"#0054f5\") dataunit = \"Devices\" ",
                                 "time_frame": {
                                     "to": 1780488459000,
                                     "from": 1777896459000
@@ -109,7 +109,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count_distinct(item_id) as items\n| view graph type = single yaxis = items scale_threshold(\"#0054f5\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(item_id) as items\n| view graph type = single yaxis = items scale_threshold(\"#0054f5\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -148,7 +148,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count_distinct(item_id) as mcp_servers\n| view graph type = single yaxis = mcp_servers scale_threshold(\"#0054f5\") dataunit = \"MCP Servers\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(item_id) as mcp_servers\n| view graph type = single yaxis = mcp_servers scale_threshold(\"#0054f5\") dataunit = \"MCP Servers\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -192,7 +192,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Malicious Activity Detected\"\n| comp count_distinct(item_id) as malicious_items\n| view graph type = single yaxis = malicious_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Malicious Activity Detected\"\n| comp count_distinct(item_id) as malicious_items\n| view graph type = single yaxis = malicious_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -231,7 +231,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Verified Hardcoded Secret\"\n| comp count_distinct(item_id) as secret_items\n| view graph type = single yaxis = secret_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Verified Hardcoded Secret\"\n| comp count_distinct(item_id) as secret_items\n| view graph type = single yaxis = secret_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -270,7 +270,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Communication With Expired Domain\"\n| comp count_distinct(item_id) as expired_domain_items\n| view graph type = single yaxis = expired_domain_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Communication With Expired Domain\"\n| comp count_distinct(item_id) as expired_domain_items\n| view graph type = single yaxis = expired_domain_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -309,7 +309,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name contains \"Vulnerability\"\n| comp count_distinct(item_id) as cve_items\n| view graph type = single yaxis = cve_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name contains \"Vulnerability\"\n| comp count_distinct(item_id) as cve_items\n| view graph type = single yaxis = cve_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -353,7 +353,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level = \"critical\"\n| comp count_distinct(item_id) as critical_items\n| view graph type = single yaxis = critical_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level = \"critical\"\n| comp count_distinct(item_id) as critical_items\n| view graph type = single yaxis = critical_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -392,7 +392,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count_distinct(package_name) as packages\n| view graph type = single yaxis = packages scale_threshold(\"#0054f5\") dataunit = \"Packages\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count_distinct(package_name) as packages\n| view graph type = single yaxis = packages scale_threshold(\"#0054f5\") dataunit = \"Packages\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -431,7 +431,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter assessed = if(json_extract_scalar(resources, \"$[0].data.risk_status\") = \"completed\", 1, 0)\n| comp avg(assessed) as cov\n| alter coverage_pct = multiply(cov, 100)\n| view graph type = single yaxis = coverage_pct scale_threshold(\"#00cc88\") dataunit = \"%\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter assessed = if(json_extract_scalar(resources, \"$[0].data.risk_status\") = \"completed\", 1, 0)\n| comp avg(assessed) as cov\n| alter coverage_pct = multiply(cov, 100)\n| view graph type = single yaxis = coverage_pct scale_threshold(\"#00cc88\") dataunit = \"%\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -470,7 +470,7 @@
                                 "type": "Custom XQL",
                                 "width": 25,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| filter item_type = \"mcp_server\" and mcp_risk_status = \"pending\"\n| comp count_distinct(item_id) as pending_mcp\n| view graph type = single yaxis = pending_mcp scale_threshold(\"#ff8c00\") dataunit = \"MCP Servers\" ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | filter item_type = \"mcp_server\" and mcp_risk_status = \"pending\"\n| comp count_distinct(item_id) as pending_mcp\n| view graph type = single yaxis = pending_mcp scale_threshold(\"#ff8c00\") dataunit = \"MCP Servers\" ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -514,7 +514,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as alerts_by_severity by severity | sort desc alerts_by_severity\n| view graph type = pie subtype = full header = \"Alerts by Severity\" xaxis = severity yaxis = alerts_by_severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as alerts_by_severity by severity | sort desc alerts_by_severity\n| view graph type = pie subtype = full header = \"Alerts by Severity\" xaxis = severity yaxis = alerts_by_severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -559,7 +559,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by item_type\n| view graph type = pie subtype = donut header = \"Alerts by Item Type\" xaxis = item_type yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by item_type\n| view graph type = pie subtype = donut header = \"Alerts by Item Type\" xaxis = item_type yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -604,7 +604,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by alert_type\n| sort desc alerts\n| view graph type = pie header = \"Alert Type\" xaxis = alert_type yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by alert_type\n| sort desc alerts\n| view graph type = pie header = \"Alert Type\" xaxis = alert_type yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -647,7 +647,7 @@
                                 "type": "Custom XQL",
                                 "width": 66,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| bin _time span = 1d\n| comp count() as alerts by _time, severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Severity Trend\" xaxis = _time yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | bin _time span = 1d\n| comp count() as alerts by _time, severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Severity Trend\" xaxis = _time yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -692,7 +692,7 @@
                                 "type": "Custom XQL",
                                 "width": 34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| comp count() as findings by finding_severity\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Finding Severity Mix\" xaxis = finding_severity yaxis = findings ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| comp count() as findings by finding_severity\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Finding Severity Mix\" xaxis = finding_severity yaxis = findings ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -742,7 +742,7 @@
                                 "type": "Custom XQL",
                                 "width": 60,
                                 "height": 481,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by finding_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Top Finding Types\" xaxis = finding_name yaxis = findings ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by finding_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Top Finding Types\" xaxis = finding_name yaxis = findings ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -780,7 +780,7 @@
                                 "type": "Custom XQL",
                                 "width": 40,
                                 "height": 481,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Unverified Publisher\", \"Individual Publisher\", \"Publisher Has Only One Item\", \"Publisher Low Install Count\", \"Low Install Count\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Publisher Trust Signals\" xaxis = finding_name yaxis = findings ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Unverified Publisher\", \"Individual Publisher\", \"Publisher Has Only One Item\", \"Publisher Low Install Count\", \"Low Install Count\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Publisher Trust Signals\" xaxis = finding_name yaxis = findings ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -830,7 +830,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 564,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Broad Host Permissions\", \"Code Execution Permissions\", \"Network Interception Permissions\", \"Identity & Authentication Permissions\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = column header = \"Risky Permission Findings\" xaxis = finding_name yaxis = findings ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Broad Host Permissions\", \"Code Execution Permissions\", \"Network Interception Permissions\", \"Identity & Authentication Permissions\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = column header = \"Risky Permission Findings\" xaxis = finding_name yaxis = findings ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -868,7 +868,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 564,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null and marketplace != null\n| comp count() as findings by marketplace, finding_name\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Types by Marketplace\" xaxis = marketplace yaxis = findings series = finding_name ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null and marketplace != null\n| comp count() as findings by marketplace, finding_name\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Types by Marketplace\" xaxis = marketplace yaxis = findings series = finding_name ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -925,7 +925,7 @@
                                 "type": "Custom XQL",
                                 "width": 41.418983700862896,
                                 "height": 435,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| bin _time span = 1d\n| comp count() as findings by _time, finding_severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Findings Over Time by Severity\" xaxis = _time yaxis = findings series = finding_severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| bin _time span = 1d\n| comp count() as findings by _time, finding_severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Findings Over Time by Severity\" xaxis = _time yaxis = findings series = finding_severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -977,7 +977,7 @@
                                 "type": "Custom XQL",
                                 "width": 58.485139022051776,
                                 "height": 435,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null and item_risk_level != null\n| comp count() as findings by item_risk_level, finding_severity\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Severity by Item Risk Level\" xaxis = item_risk_level yaxis = findings series = finding_severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null and item_risk_level != null\n| comp count() as findings by item_risk_level, finding_severity\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Severity by Item Risk Level\" xaxis = item_risk_level yaxis = findings series = finding_severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1034,7 +1034,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level != null\n| comp count() as alerts by item_risk_level\n| sort desc alerts\n| view graph type = pie subtype = full header = \"Item Risk Level\" xaxis = item_risk_level yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level != null\n| comp count() as alerts by item_risk_level\n| sort desc alerts\n| view graph type = pie subtype = full header = \"Item Risk Level\" xaxis = item_risk_level yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1079,7 +1079,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_status = json_extract_scalar(resources, \"$[0].data.risk_status\")\n| filter item_risk_status != null\n| comp count() as alerts by item_risk_status\n| sort desc alerts\n| view graph type = pie subtype = donut header = \"Risk Assessment Status\" xaxis = item_risk_status yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_status = json_extract_scalar(resources, \"$[0].data.risk_status\")\n| filter item_risk_status != null\n| comp count() as alerts by item_risk_status\n| sort desc alerts\n| view graph type = pie subtype = donut header = \"Risk Assessment Status\" xaxis = item_risk_status yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1124,7 +1124,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter risk_score != null\n| alter risk_band = if(risk_score < 2, \"0-2\", risk_score < 4, \"2-4\", risk_score < 6, \"4-6\", risk_score < 8, \"6-8\", \"8-10\")\n| comp count() as items by risk_band\n| sort asc risk_band\n| view graph type = column header = \"Risk Score Distribution\" xaxis = risk_band yaxis = items ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter risk_score != null\n| alter risk_band = if(risk_score < 2, \"0-2\", risk_score < 4, \"2-4\", risk_score < 6, \"4-6\", risk_score < 8, \"6-8\", \"8-10\")\n| comp count() as items by risk_band\n| sort asc risk_band\n| view graph type = column header = \"Risk Score Distribution\" xaxis = risk_band yaxis = items ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1167,7 +1167,7 @@
                                 "type": "Custom XQL",
                                 "width": 58.964525407478426,
                                 "height": 489,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, item_risk_level\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by Risk Level\" xaxis = marketplace yaxis = alerts series = item_risk_level ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, item_risk_level\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by Risk Level\" xaxis = marketplace yaxis = alerts series = item_risk_level ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1219,7 +1219,7 @@
                                 "type": "Custom XQL",
                                 "width": 40.939597315436245,
                                 "height": 489,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter marketplace != null and risk_score != null\n| comp avg(risk_score) as avg_risk by marketplace\n| sort desc avg_risk\n| view graph type = column header = \"Avg Risk Score by Marketplace\" xaxis = marketplace yaxis = avg_risk ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter marketplace != null and risk_score != null\n| comp avg(risk_score) as avg_risk by marketplace\n| sort desc avg_risk\n| view graph type = column header = \"Avg Risk Score by Marketplace\" xaxis = marketplace yaxis = avg_risk ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1262,7 +1262,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 470,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by item_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Items With Most Findings\" xaxis = item_name yaxis = findings ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by item_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Items With Most Findings\" xaxis = item_name yaxis = findings ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1300,7 +1300,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 470,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count() as alerts by package_name\n| sort desc alerts\n| limit 15\n| view graph type = column header = \"Top Packages by Alerts\" xaxis = package_name yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count() as alerts by package_name\n| sort desc alerts\n| limit 15\n| view graph type = column header = \"Top Packages by Alerts\" xaxis = package_name yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1343,7 +1343,7 @@
                                 "type": "Custom XQL",
                                 "width": 41.514860977948224,
                                 "height": 550,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as items by category\n| sort desc items\n| limit 15\n| view graph type = column header = \"Top Item Categories\" xaxis = category yaxis = items ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as items by category\n| sort desc items\n| limit 15\n| view graph type = column header = \"Top Item Categories\" xaxis = category yaxis = items ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1381,7 +1381,7 @@
                                 "type": "Custom XQL",
                                 "width": 58.38926174496644,
                                 "height": 550,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as alerts by category, severity\n| sort desc alerts\n| limit 40\n| view graph type = column subtype = stacked header = \"Category by Severity\" xaxis = category yaxis = alerts series = severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as alerts by category, severity\n| sort desc alerts\n| limit 40\n| view graph type = column subtype = stacked header = \"Category by Severity\" xaxis = category yaxis = alerts series = severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1438,7 +1438,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 569,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, device_os_obs\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by OS\" xaxis = marketplace yaxis = alerts series = device_os_obs ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, device_os_obs\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by OS\" xaxis = marketplace yaxis = alerts series = device_os_obs ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1490,7 +1490,7 @@
                                 "type": "Custom XQL",
                                 "width": 50,
                                 "height": 569,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        model_name  = json_extract_scalar(resources, \"$[0].name\")\n| filter marketplace in (\"ollama\", \"hugging_face\")\n| comp count() as alerts by model_name, marketplace\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"AI Models by Alerts (Ollama / Hugging Face)\" xaxis = model_name yaxis = alerts series = marketplace ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        model_name  = json_extract_scalar(resources, \"$[0].name\")\n| filter marketplace in (\"ollama\", \"hugging_face\")\n| comp count() as alerts by model_name, marketplace\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"AI Models by Alerts (Ollama / Hugging Face)\" xaxis = model_name yaxis = alerts series = marketplace ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1547,7 +1547,7 @@
                                 "type": "Custom XQL",
                                 "width": 36.4333652924257,
                                 "height": 437,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| bin _time span = 1d\n| comp count() as alerts by _time, marketplace\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Marketplace Trend\" xaxis = _time yaxis = alerts series = marketplace ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| bin _time span = 1d\n| comp count() as alerts by _time, marketplace\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Marketplace Trend\" xaxis = _time yaxis = alerts series = marketplace ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1599,7 +1599,7 @@
                                 "type": "Custom XQL",
                                 "width": 63.47075743048897,
                                 "height": 437,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter first_seen = json_extract_scalar(resources, \"$[2].data.first_seen\")\n| filter first_seen != null\n| alter first_seen_day = arrayindex(split(first_seen, \"T\"), 0)\n| comp count_distinct(item_id) as new_items by first_seen_day\n| sort asc first_seen_day\n| view graph type = area header = \"Newly Seen Items Over Time\" xaxis = first_seen_day yaxis = new_items ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter first_seen = json_extract_scalar(resources, \"$[2].data.first_seen\")\n| filter first_seen != null\n| alter first_seen_day = arrayindex(split(first_seen, \"T\"), 0)\n| comp count_distinct(item_id) as new_items by first_seen_day\n| sort asc first_seen_day\n| view graph type = area header = \"Newly Seen Items Over Time\" xaxis = first_seen_day yaxis = new_items ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1642,7 +1642,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter device_status = json_extract_scalar(resources, \"$[1].data.status\")\n| filter device_status != null\n| comp count() as alerts by device_status\n| view graph type = pie subtype = donut header = \"Device Status\" xaxis = device_status yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter device_status = json_extract_scalar(resources, \"$[1].data.status\")\n| filter device_status != null\n| comp count() as alerts by device_status\n| view graph type = pie subtype = donut header = \"Device Status\" xaxis = device_status yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1687,7 +1687,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by device_os_obs, severity\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Severity by OS\" xaxis = device_os_obs yaxis = alerts series = severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by device_os_obs, severity\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Severity by OS\" xaxis = device_os_obs yaxis = alerts series = severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1739,7 +1739,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by device_last_user\n| sort desc alerts\n| limit 10\n| view graph type = pie subtype = full xaxis = device_last_user yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by device_last_user\n| sort desc alerts\n| limit 10\n| view graph type = pie subtype = full xaxis = device_last_user yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1782,7 +1782,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 521,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by alert_hostname, severity\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"Device Severity Concentration\" xaxis = alert_hostname yaxis = alerts series = severity ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by alert_hostname, severity\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"Device Severity Concentration\" xaxis = alert_hostname yaxis = alerts series = severity ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1839,7 +1839,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_type\n| view graph type = pie subtype = full header = \"MCP: Local vs Remote\" xaxis = mcp_type yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_type\n| view graph type = pie subtype = full header = \"MCP: Local vs Remote\" xaxis = mcp_type yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1884,7 +1884,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_transport\n| view graph type = pie subtype = donut header = \"MCP Transport\" xaxis = mcp_transport yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_transport\n| view graph type = pie subtype = donut header = \"MCP Transport\" xaxis = mcp_transport yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1929,7 +1929,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| filter item_type = \"mcp_server\"\n| alter install_method = json_extract_scalar(resources, \"$[0].data.installation_method\")\n| filter install_method != null\n| comp count() as alerts by install_method\n| view graph type = pie subtype = donut header = \"MCP Installation Method\" xaxis = install_method yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | filter item_type = \"mcp_server\"\n| alter install_method = json_extract_scalar(resources, \"$[0].data.installation_method\")\n| filter install_method != null\n| comp count() as alerts by install_method\n| view graph type = pie subtype = donut header = \"MCP Installation Method\" xaxis = install_method yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -1979,7 +1979,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_package_type\n| sort desc alerts\n| view graph type = pie header = \"MCP by Package Type\" xaxis = mcp_package_type yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_package_type\n| sort desc alerts\n| view graph type = pie header = \"MCP by Package Type\" xaxis = mcp_package_type yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -2017,7 +2017,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.33,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by item_id\n| sort desc alerts\n| limit 10\n| view graph type = funnel show_callouts = `true` show_callouts_names = `true` show_percentage = `false` xaxis = item_id yaxis = alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by item_id\n| sort desc alerts\n| limit 10\n| view graph type = funnel show_callouts = `true` show_callouts_names = `true` show_percentage = `false` xaxis = item_id yaxis = alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -2069,7 +2069,7 @@
                                 "type": "Custom XQL",
                                 "width": 33.34,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| bin _time span = 1d\n| comp count() as mcp_alerts by _time\n| sort asc _time\n| view graph type = area header = \"MCP Detections Over Time\" xaxis = _time yaxis = mcp_alerts ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | bin _time span = 1d\n| comp count() as mcp_alerts by _time\n| sort asc _time\n| view graph type = area header = \"MCP Detections Over Time\" xaxis = _time yaxis = mcp_alerts ",
                                 "time_frame": {
                                     "relativeTime": 2592000000
                                 },
@@ -2112,7 +2112,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_name       = json_extract_scalar(resources, \"$[0].name\"),\n        marketplace      = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        package_name     = json_extract_scalar(resources, \"$[0].data.package_name\"),\n        item_risk_level  = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        item_risk_score  = json_extract_scalar(resources, \"$[0].data.risk\")\n| filter item_name != null\n| fields _time, item_name, marketplace, package_name, item_risk_level, item_risk_score, severity, alert_hostname, device_last_user\n| sort desc _time\n",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_name       = json_extract_scalar(resources, \"$[0].name\"),\n        marketplace      = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        package_name     = json_extract_scalar(resources, \"$[0].data.package_name\"),\n        item_risk_level  = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        item_risk_score  = json_extract_scalar(resources, \"$[0].data.risk\")\n| filter item_name != null\n| fields _time, item_name, marketplace, package_name, item_risk_level, item_risk_score, severity, alert_hostname, device_last_user\n| sort desc _time\n",
                                 "entityType": "xql-widget-table-koi-composite-0001",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2140,7 +2140,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\"),\n        evidence = json_extract_scalar(findings_arr, \"$.evidence.message\")\n| filter finding_name = \"Malicious Activity Detected\"\n| fields _time, item_name, evidence, alert_hostname, device_last_user\n| sort desc _time\n",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\"),\n        evidence = json_extract_scalar(findings_arr, \"$.evidence.message\")\n| filter finding_name = \"Malicious Activity Detected\"\n| fields _time, item_name, evidence, alert_hostname, device_last_user\n| sort desc _time\n",
                                 "entityType": "xql-widget-table-koi-composite-evidence",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2168,7 +2168,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter device_status = json_extract_scalar(resources, \"$[1].data.status\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        device_last_seen2 = json_extract_scalar(resources, \"$[1].data.last_seen\")\n| filter device_status = \"stale\" and item_risk_level = \"critical\"\n| fields _time, alert_hostname, device_last_user, item_name, item_risk_level, device_last_seen2\n| sort desc _time\n",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter device_status = json_extract_scalar(resources, \"$[1].data.status\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        device_last_seen2 = json_extract_scalar(resources, \"$[1].data.last_seen\")\n| filter device_status = \"stale\" and item_risk_level = \"critical\"\n| fields _time, alert_hostname, device_last_user, item_name, item_risk_level, device_last_seen2\n| sort desc _time\n",
                                 "entityType": "xql-widget-table-koi-composite-stale",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2196,7 +2196,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_version = json_extract_scalar(resources, \"$[0].version\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Unmaintained Item\"\n| fields _time, item_name, item_version, marketplace, alert_hostname\n| sort desc _time\n",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_version = json_extract_scalar(resources, \"$[0].version\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Unmaintained Item\"\n| fields _time, item_name, item_version, marketplace, alert_hostname\n| sort desc _time\n",
                                 "entityType": "xql-widget-table-koi-composite-unmaintained",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2224,7 +2224,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields _time, finding_title, severity, item_id, item_type, alert_hostname, device_last_user, alert_type\n| sort desc _time ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields _time, finding_title, severity, item_id, item_type, alert_hostname, device_last_user, alert_type\n| sort desc _time ",
                                 "entityType": "xql-widget-table-f30bc3b4-24ba-469d-bad0-61db396cfe91",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2252,7 +2252,7 @@
                                 "type": "Custom XQL",
                                 "width": 100,
                                 "height": 344,
-                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\" and severity in (\"Critical\", \"High\")\n| fields _time, item_id, mcp_type, mcp_transport, mcp_risk_level, mcp_url, alert_hostname, device_last_user\n| sort desc _time ",
+                                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\" and severity in (\"Critical\", \"High\")\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields _time, item_id, mcp_type, mcp_transport, mcp_risk_level, mcp_url, alert_hostname, device_last_user\n| sort desc _time ",
                                 "entityType": "xql-widget-table-98ed5028-68a1-4abe-8a8f-1fe36a63e453",
                                 "time_frame": {
                                     "relativeTime": 2592000000
@@ -2283,7 +2283,7 @@
             "creation_time": 1780546744808,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by item_id\n| sort desc alerts\n| limit 10\n| view graph type = funnel show_callouts = `true` show_callouts_names = `true` show_percentage = `false` xaxis = item_id yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by item_id\n| sort desc alerts\n| limit 10\n| view graph type = funnel show_callouts = `true` show_callouts_names = `true` show_percentage = `false` xaxis = item_id yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2342,7 +2342,7 @@
             "creation_time": 1780546744465,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_type\n| view graph type = pie subtype = full header = \"MCP: Local vs Remote\" xaxis = mcp_type yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_type\n| view graph type = pie subtype = full header = \"MCP: Local vs Remote\" xaxis = mcp_type yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2394,7 +2394,7 @@
             "creation_time": 1780546744315,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by device_last_user\n| sort desc alerts\n| limit 10\n| view graph type = pie subtype = full xaxis = device_last_user yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by device_last_user\n| sort desc alerts\n| limit 10\n| view graph type = pie subtype = full xaxis = device_last_user yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2439,7 +2439,7 @@
             "creation_time": 1780546744392,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by alert_hostname, severity\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"Device Severity Concentration\" xaxis = alert_hostname yaxis = alerts series = severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by alert_hostname, severity\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"Device Severity Concentration\" xaxis = alert_hostname yaxis = alerts series = severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2498,7 +2498,7 @@
             "creation_time": 1780546744239,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by device_os_obs, severity\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Severity by OS\" xaxis = device_os_obs yaxis = alerts series = severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by device_os_obs, severity\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Severity by OS\" xaxis = device_os_obs yaxis = alerts series = severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2557,7 +2557,7 @@
             "creation_time": 1780546741694,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by alert_type\n| sort desc alerts\n| view graph type = pie header = \"Alert Type\" xaxis = alert_type yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by alert_type\n| sort desc alerts\n| view graph type = pie header = \"Alert Type\" xaxis = alert_type yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2602,7 +2602,7 @@
             "creation_time": 1780546741627,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count() as alerts by item_type\n| view graph type = pie subtype = donut header = \"Alerts by Item Type\" xaxis = item_type yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by item_type\n| view graph type = pie subtype = donut header = \"Alerts by Item Type\" xaxis = item_type yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2654,7 +2654,7 @@
             "creation_time": 1780546741775,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| bin _time span = 1d\n| comp count() as alerts by _time, severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Severity Trend\" xaxis = _time yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | bin _time span = 1d\n| comp count() as alerts by _time, severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Severity Trend\" xaxis = _time yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2706,7 +2706,7 @@
             "creation_time": 1780546744889,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| bin _time span = 1d\n| comp count() as mcp_alerts by _time\n| sort asc _time\n| view graph type = area header = \"MCP Detections Over Time\" xaxis = _time yaxis = mcp_alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | bin _time span = 1d\n| comp count() as mcp_alerts by _time\n| sort asc _time\n| view graph type = area header = \"MCP Detections Over Time\" xaxis = _time yaxis = mcp_alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2751,7 +2751,7 @@
             "creation_time": 1780546740400,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count_distinct(item_id) as items\n| view graph type = single yaxis = items scale_threshold(\"#0054f5\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(item_id) as items\n| view graph type = single yaxis = items scale_threshold(\"#0054f5\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2797,7 +2797,7 @@
             "creation_time": 1780546741562,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as alerts_by_severity by severity | sort desc alerts_by_severity\n| view graph type = pie subtype = full header = \"Alerts by Severity\" xaxis = severity yaxis = alerts_by_severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as alerts_by_severity by severity | sort desc alerts_by_severity\n| view graph type = pie subtype = full header = \"Alerts by Severity\" xaxis = severity yaxis = alerts_by_severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2849,7 +2849,7 @@
             "creation_time": 1780546742641,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level != null\n| comp count() as alerts by item_risk_level\n| sort desc alerts\n| view graph type = pie subtype = full header = \"Item Risk Level\" xaxis = item_risk_level yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level != null\n| comp count() as alerts by item_risk_level\n| sort desc alerts\n| view graph type = pie subtype = full header = \"Item Risk Level\" xaxis = item_risk_level yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2901,7 +2901,7 @@
             "creation_time": 1780546743456,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as items by category\n| sort desc items\n| limit 15\n| view graph type = column header = \"Top Item Categories\" xaxis = category yaxis = items ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as items by category\n| sort desc items\n| limit 15\n| view graph type = column header = \"Top Item Categories\" xaxis = category yaxis = items ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -2946,7 +2946,7 @@
             "creation_time": 1780546740237,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as total_alert\n| view graph type = single subtype = standard yaxis = total_alert scale_threshold(\"#919291\",\"#ff0082\",\"400\") dataunit = \"Alert\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields\n    // XSIAM-injected metadata\n    _time, _id, _insert_time, _vendor, _product,\n    _reporting_device_ip, _reporting_device_name,\n    _final_reporting_device_ip, _final_reporting_device_name,\n    _tag, _raw_json, _raw_log,\n    // OCSF taxonomy\n    source_log_type, is_alert, message,\n    activity_id, activity_name,\n    category_uid, category_name,\n    class_uid, class_name,\n    type_uid,\n    severity, severity_id,\n    confidence, confidence_id,\n    risk_level, risk_level_id,\n    status, status_id,\n    time, timezone_offset,\n    // OCSF nested (raw JSON strings)\n    finding_info, observables, resources, metadata,\n    // Parsing-rule promoted — alert identity\n    finding_uid, finding_title, finding_created_time, alert_type,\n    // Parsing-rule promoted — item context\n    item_id, item_type, alert_item_version,\n    // Parsing-rule promoted — device context\n    device_id, alert_hostname, device_last_seen, device_last_user,\n    device_os_obs, device_serial,\n    // Parsing-rule promoted — MCP-server specific\n    mcp_package_name, mcp_package_type, mcp_transport,\n    mcp_installation_method, mcp_url, mcp_risk_status\n| comp count() as total_alert\n| view graph type = single subtype = standard yaxis = total_alert scale_threshold(\"#919291\",\"#ff0082\",\"400\") dataunit = \"Alert\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3001,7 +3001,7 @@
             "creation_time": 1780546745782,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\" and severity in (\"Critical\", \"High\")\n| fields _time, item_id, mcp_type, mcp_transport, mcp_risk_level, mcp_url, alert_hostname, device_last_user\n| sort desc _time ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\" and severity in (\"Critical\", \"High\")\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields _time, item_id, mcp_type, mcp_transport, mcp_risk_level, mcp_url, alert_hostname, device_last_user\n| sort desc _time ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3024,7 +3024,7 @@
             "creation_time": 1780546740480,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count_distinct(item_id) as mcp_servers\n| view graph type = single yaxis = mcp_servers scale_threshold(\"#0054f5\") dataunit = \"MCP Servers\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(item_id) as mcp_servers\n| view graph type = single yaxis = mcp_servers scale_threshold(\"#0054f5\") dataunit = \"MCP Servers\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3070,7 +3070,7 @@
             "creation_time": 1780546741894,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| comp count() as findings by finding_severity\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Finding Severity Mix\" xaxis = finding_severity yaxis = findings ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| comp count() as findings by finding_severity\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Finding Severity Mix\" xaxis = finding_severity yaxis = findings ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3122,7 +3122,7 @@
             "creation_time": 1780546740319,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| comp count_distinct(device_id) as devices\n| view graph type = single subtype = standard yaxis = devices scale_threshold(\"#0054f5\") dataunit = \"Devices\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count_distinct(device_id) as devices\n| view graph type = single subtype = standard yaxis = devices scale_threshold(\"#0054f5\") dataunit = \"Devices\" ",
                 "time_frame": {
                     "to": 1780488459000,
                     "from": 1777896459000
@@ -3176,7 +3176,7 @@
             "creation_time": 1780546741991,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by finding_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Top Finding Types\" xaxis = finding_name yaxis = findings ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by finding_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Top Finding Types\" xaxis = finding_name yaxis = findings ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3221,7 +3221,7 @@
             "creation_time": 1780546745700,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| fields _time, finding_title, severity, item_id, item_type, alert_hostname, device_last_user, alert_type\n| sort desc _time ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | fields _time, finding_title, severity, item_id, item_type, alert_hostname, device_last_user, alert_type\n| sort desc _time ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3244,7 +3244,7 @@
             "creation_time": 1780546744735,
             "description": "",
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_package_type\n| sort desc alerts\n| view graph type = pie header = \"MCP by Package Type\" xaxis = mcp_package_type yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_package_type\n| sort desc alerts\n| view graph type = pie header = \"MCP by Package Type\" xaxis = mcp_package_type yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3289,7 +3289,7 @@
             "creation_time": 1780546744543,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| comp count() as alerts by mcp_transport\n| view graph type = pie subtype = donut header = \"MCP Transport\" xaxis = mcp_transport yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\" and item_type = \"mcp_server\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | comp count() as alerts by mcp_transport\n| view graph type = pie subtype = donut header = \"MCP Transport\" xaxis = mcp_transport yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3341,7 +3341,7 @@
             "creation_time": 1780546742734,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_status = json_extract_scalar(resources, \"$[0].data.risk_status\")\n| filter item_risk_status != null\n| comp count() as alerts by item_risk_status\n| sort desc alerts\n| view graph type = pie subtype = donut header = \"Risk Assessment Status\" xaxis = item_risk_status yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_status = json_extract_scalar(resources, \"$[0].data.risk_status\")\n| filter item_risk_status != null\n| comp count() as alerts by item_risk_status\n| sort desc alerts\n| view graph type = pie subtype = donut header = \"Risk Assessment Status\" xaxis = item_risk_status yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3393,7 +3393,7 @@
             "creation_time": 1780546742991,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, item_risk_level\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by Risk Level\" xaxis = marketplace yaxis = alerts series = item_risk_level ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, item_risk_level\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by Risk Level\" xaxis = marketplace yaxis = alerts series = item_risk_level ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3452,7 +3452,7 @@
             "creation_time": 1780546743795,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        model_name  = json_extract_scalar(resources, \"$[0].name\")\n| filter marketplace in (\"ollama\", \"hugging_face\")\n| comp count() as alerts by model_name, marketplace\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"AI Models by Alerts (Ollama / Hugging Face)\" xaxis = model_name yaxis = alerts series = marketplace ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        model_name  = json_extract_scalar(resources, \"$[0].name\")\n| filter marketplace in (\"ollama\", \"hugging_face\")\n| comp count() as alerts by model_name, marketplace\n| sort desc alerts\n| limit 15\n| view graph type = column subtype = stacked header = \"AI Models by Alerts (Ollama / Hugging Face)\" xaxis = model_name yaxis = alerts series = marketplace ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3511,7 +3511,7 @@
             "creation_time": 1780546745065,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_name       = json_extract_scalar(resources, \"$[0].name\"),\n        marketplace      = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        package_name     = json_extract_scalar(resources, \"$[0].data.package_name\"),\n        item_risk_level  = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        item_risk_score  = json_extract_scalar(resources, \"$[0].data.risk\")\n| filter item_name != null\n| fields _time, item_name, marketplace, package_name, item_risk_level, item_risk_score, severity, alert_hostname, device_last_user\n| sort desc _time\n",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_name       = json_extract_scalar(resources, \"$[0].name\"),\n        marketplace      = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        package_name     = json_extract_scalar(resources, \"$[0].data.package_name\"),\n        item_risk_level  = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        item_risk_score  = json_extract_scalar(resources, \"$[0].data.risk\")\n| filter item_name != null\n| fields _time, item_name, marketplace, package_name, item_risk_level, item_risk_score, severity, alert_hostname, device_last_user\n| sort desc _time\n",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3534,7 +3534,7 @@
             "creation_time": 1780546740598,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Malicious Activity Detected\"\n| comp count_distinct(item_id) as malicious_items\n| view graph type = single yaxis = malicious_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Malicious Activity Detected\"\n| comp count_distinct(item_id) as malicious_items\n| view graph type = single yaxis = malicious_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3580,7 +3580,7 @@
             "creation_time": 1780546740712,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Verified Hardcoded Secret\"\n| comp count_distinct(item_id) as secret_items\n| view graph type = single yaxis = secret_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Verified Hardcoded Secret\"\n| comp count_distinct(item_id) as secret_items\n| view graph type = single yaxis = secret_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3626,7 +3626,7 @@
             "creation_time": 1780546740821,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Communication With Expired Domain\"\n| comp count_distinct(item_id) as expired_domain_items\n| view graph type = single yaxis = expired_domain_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Communication With Expired Domain\"\n| comp count_distinct(item_id) as expired_domain_items\n| view graph type = single yaxis = expired_domain_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3672,7 +3672,7 @@
             "creation_time": 1780546740962,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name contains \"Vulnerability\"\n| comp count_distinct(item_id) as cve_items\n| view graph type = single yaxis = cve_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name contains \"Vulnerability\"\n| comp count_distinct(item_id) as cve_items\n| view graph type = single yaxis = cve_items scale_threshold(\"#ff8c00\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3718,7 +3718,7 @@
             "creation_time": 1780546742201,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Broad Host Permissions\", \"Code Execution Permissions\", \"Network Interception Permissions\", \"Identity & Authentication Permissions\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = column header = \"Risky Permission Findings\" xaxis = finding_name yaxis = findings ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Broad Host Permissions\", \"Code Execution Permissions\", \"Network Interception Permissions\", \"Identity & Authentication Permissions\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = column header = \"Risky Permission Findings\" xaxis = finding_name yaxis = findings ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3763,7 +3763,7 @@
             "creation_time": 1780546742102,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Unverified Publisher\", \"Individual Publisher\", \"Publisher Has Only One Item\", \"Publisher Low Install Count\", \"Low Install Count\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Publisher Trust Signals\" xaxis = finding_name yaxis = findings ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name in (\"Unverified Publisher\", \"Individual Publisher\", \"Publisher Has Only One Item\", \"Publisher Low Install Count\", \"Low Install Count\")\n| comp count() as findings by finding_name\n| sort desc findings\n| view graph type = pie subtype = donut header = \"Publisher Trust Signals\" xaxis = finding_name yaxis = findings ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3815,7 +3815,7 @@
             "creation_time": 1780546745218,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\"),\n        evidence = json_extract_scalar(findings_arr, \"$.evidence.message\")\n| filter finding_name = \"Malicious Activity Detected\"\n| fields _time, item_name, evidence, alert_hostname, device_last_user\n| sort desc _time\n",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\"),\n        evidence = json_extract_scalar(findings_arr, \"$.evidence.message\")\n| filter finding_name = \"Malicious Activity Detected\"\n| fields _time, item_name, evidence, alert_hostname, device_last_user\n| sort desc _time\n",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3838,7 +3838,7 @@
             "creation_time": 1780546742891,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter risk_score != null\n| alter risk_band = if(risk_score < 2, \"0-2\", risk_score < 4, \"2-4\", risk_score < 6, \"4-6\", risk_score < 8, \"6-8\", \"8-10\")\n| comp count() as items by risk_band\n| sort asc risk_band\n| view graph type = column header = \"Risk Score Distribution\" xaxis = risk_band yaxis = items ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter risk_score != null\n| alter risk_band = if(risk_score < 2, \"0-2\", risk_score < 4, \"2-4\", risk_score < 6, \"4-6\", risk_score < 8, \"6-8\", \"8-10\")\n| comp count() as items by risk_band\n| sort asc risk_band\n| view graph type = column header = \"Risk Score Distribution\" xaxis = risk_band yaxis = items ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3883,7 +3883,7 @@
             "creation_time": 1780546743127,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter marketplace != null and risk_score != null\n| comp avg(risk_score) as avg_risk by marketplace\n| sort desc avg_risk\n| view graph type = column header = \"Avg Risk Score by Marketplace\" xaxis = marketplace yaxis = avg_risk ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\"),\n        risk_score = to_number(json_extract_scalar(resources, \"$[0].data.risk\"))\n| filter marketplace != null and risk_score != null\n| comp avg(risk_score) as avg_risk by marketplace\n| sort desc avg_risk\n| view graph type = column header = \"Avg Risk Score by Marketplace\" xaxis = marketplace yaxis = avg_risk ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3928,7 +3928,7 @@
             "creation_time": 1780546743263,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by item_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Items With Most Findings\" xaxis = item_name yaxis = findings ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null\n| comp count() as findings by item_name\n| sort desc findings\n| limit 15\n| view graph type = column header = \"Items With Most Findings\" xaxis = item_name yaxis = findings ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -3973,7 +3973,7 @@
             "creation_time": 1780546744169,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter device_status = json_extract_scalar(resources, \"$[1].data.status\")\n| filter device_status != null\n| comp count() as alerts by device_status\n| view graph type = pie subtype = donut header = \"Device Status\" xaxis = device_status yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter device_status = json_extract_scalar(resources, \"$[1].data.status\")\n| filter device_status != null\n| comp count() as alerts by device_status\n| view graph type = pie subtype = donut header = \"Device Status\" xaxis = device_status yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4025,7 +4025,7 @@
             "creation_time": 1780546745398,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter device_status = json_extract_scalar(resources, \"$[1].data.status\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        device_last_seen2 = json_extract_scalar(resources, \"$[1].data.last_seen\")\n| filter device_status = \"stale\" and item_risk_level = \"critical\"\n| fields _time, alert_hostname, device_last_user, item_name, item_risk_level, device_last_seen2\n| sort desc _time\n",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter device_status = json_extract_scalar(resources, \"$[1].data.status\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\"),\n        device_last_seen2 = json_extract_scalar(resources, \"$[1].data.last_seen\")\n| filter device_status = \"stale\" and item_risk_level = \"critical\"\n| fields _time, alert_hostname, device_last_user, item_name, item_risk_level, device_last_seen2\n| sort desc _time\n",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4048,7 +4048,7 @@
             "creation_time": 1780546743662,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, device_os_obs\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by OS\" xaxis = marketplace yaxis = alerts series = device_os_obs ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| comp count() as alerts by marketplace, device_os_obs\n| sort desc alerts\n| view graph type = column subtype = stacked header = \"Marketplace by OS\" xaxis = marketplace yaxis = alerts series = device_os_obs ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4107,7 +4107,7 @@
             "creation_time": 1780546745612,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_version = json_extract_scalar(resources, \"$[0].version\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Unmaintained Item\"\n| fields _time, item_name, item_version, marketplace, alert_hostname\n| sort desc _time\n",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_name = json_extract_scalar(resources, \"$[0].name\"),\n        item_version = json_extract_scalar(resources, \"$[0].version\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name = \"Unmaintained Item\"\n| fields _time, item_name, item_version, marketplace, alert_hostname\n| sort desc _time\n",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4130,7 +4130,7 @@
             "creation_time": 1780546743352,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count() as alerts by package_name\n| sort desc alerts\n| limit 15\n| view graph type = column header = \"Top Packages by Alerts\" xaxis = package_name yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count() as alerts by package_name\n| sort desc alerts\n| limit 15\n| view graph type = column header = \"Top Packages by Alerts\" xaxis = package_name yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4175,7 +4175,7 @@
             "creation_time": 1780546742319,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null and marketplace != null\n| comp count() as findings by marketplace, finding_name\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Types by Marketplace\" xaxis = marketplace yaxis = findings series = finding_name ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| arrayexpand findings_arr\n| alter finding_name = json_extract_scalar(findings_arr, \"$.finding_name\")\n| filter finding_name != null and marketplace != null\n| comp count() as findings by marketplace, finding_name\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Types by Marketplace\" xaxis = marketplace yaxis = findings series = finding_name ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4234,7 +4234,7 @@
             "creation_time": 1780546744653,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| filter item_type = \"mcp_server\"\n| alter install_method = json_extract_scalar(resources, \"$[0].data.installation_method\")\n| filter install_method != null\n| comp count() as alerts by install_method\n| view graph type = pie subtype = donut header = \"MCP Installation Method\" xaxis = install_method yaxis = alerts ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | filter item_type = \"mcp_server\"\n| alter install_method = json_extract_scalar(resources, \"$[0].data.installation_method\")\n| filter install_method != null\n| comp count() as alerts by install_method\n| view graph type = pie subtype = donut header = \"MCP Installation Method\" xaxis = install_method yaxis = alerts ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4286,7 +4286,7 @@
             "creation_time": 1780546741380,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| filter item_type = \"mcp_server\" and mcp_risk_status = \"pending\"\n| comp count_distinct(item_id) as pending_mcp\n| view graph type = single yaxis = pending_mcp scale_threshold(\"#ff8c00\") dataunit = \"MCP Servers\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | filter item_type = \"mcp_server\" and mcp_risk_status = \"pending\"\n| comp count_distinct(item_id) as pending_mcp\n| view graph type = single yaxis = pending_mcp scale_threshold(\"#ff8c00\") dataunit = \"MCP Servers\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4332,7 +4332,7 @@
             "creation_time": 1780546742550,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null and item_risk_level != null\n| comp count() as findings by item_risk_level, finding_severity\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Severity by Item Risk Level\" xaxis = item_risk_level yaxis = findings series = finding_severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\"),\n        item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null and item_risk_level != null\n| comp count() as findings by item_risk_level, finding_severity\n| sort desc findings\n| view graph type = column subtype = stacked header = \"Finding Severity by Item Risk Level\" xaxis = item_risk_level yaxis = findings series = finding_severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4391,7 +4391,7 @@
             "creation_time": 1780546743560,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as alerts by category, severity\n| sort desc alerts\n| limit 40\n| view graph type = column subtype = stacked header = \"Category by Severity\" xaxis = category yaxis = alerts series = severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter labels_arr = json_extract_array(resources, \"$[0].labels\")\n| arrayexpand labels_arr\n| alter category = json_extract_scalar(labels_arr, \"$\")\n| filter category != null\n| comp count() as alerts by category, severity\n| sort desc alerts\n| limit 40\n| view graph type = column subtype = stacked header = \"Category by Severity\" xaxis = category yaxis = alerts series = severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4450,7 +4450,7 @@
             "creation_time": 1780546743910,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| bin _time span = 1d\n| comp count() as alerts by _time, marketplace\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Marketplace Trend\" xaxis = _time yaxis = alerts series = marketplace ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter marketplace = json_extract_scalar(resources, \"$[0].data.marketplace\")\n| filter marketplace != null\n| bin _time span = 1d\n| comp count() as alerts by _time, marketplace\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Marketplace Trend\" xaxis = _time yaxis = alerts series = marketplace ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4509,7 +4509,7 @@
             "creation_time": 1780546742426,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| bin _time span = 1d\n| comp count() as findings by _time, finding_severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Findings Over Time by Severity\" xaxis = _time yaxis = findings series = finding_severity ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter findings_arr = json_extract_array(resources, \"$[0].data.findings.findings\")\n| arrayexpand findings_arr\n| alter finding_severity = json_extract_scalar(findings_arr, \"$.severity\")\n| filter finding_severity != null\n| bin _time span = 1d\n| comp count() as findings by _time, finding_severity\n| sort asc _time\n| view graph type = area subtype = stacked header = \"Findings Over Time by Severity\" xaxis = _time yaxis = findings series = finding_severity ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4568,7 +4568,7 @@
             "creation_time": 1780546744079,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter first_seen = json_extract_scalar(resources, \"$[2].data.first_seen\")\n| filter first_seen != null\n| alter first_seen_day = arrayindex(split(first_seen, \"T\"), 0)\n| comp count_distinct(item_id) as new_items by first_seen_day\n| sort asc first_seen_day\n| view graph type = area header = \"Newly Seen Items Over Time\" xaxis = first_seen_day yaxis = new_items ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter first_seen = json_extract_scalar(resources, \"$[2].data.first_seen\")\n| filter first_seen != null\n| alter first_seen_day = arrayindex(split(first_seen, \"T\"), 0)\n| comp count_distinct(item_id) as new_items by first_seen_day\n| sort asc first_seen_day\n| view graph type = area header = \"Newly Seen Items Over Time\" xaxis = first_seen_day yaxis = new_items ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4613,7 +4613,7 @@
             "creation_time": 1780546741302,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter assessed = if(json_extract_scalar(resources, \"$[0].data.risk_status\") = \"completed\", 1, 0)\n| comp avg(assessed) as cov\n| alter coverage_pct = multiply(cov, 100)\n| view graph type = single yaxis = coverage_pct scale_threshold(\"#00cc88\") dataunit = \"%\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter assessed = if(json_extract_scalar(resources, \"$[0].data.risk_status\") = \"completed\", 1, 0)\n| comp avg(assessed) as cov\n| alter coverage_pct = multiply(cov, 100)\n| view graph type = single yaxis = coverage_pct scale_threshold(\"#00cc88\") dataunit = \"%\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4659,7 +4659,7 @@
             "creation_time": 1780546741176,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count_distinct(package_name) as packages\n| view graph type = single yaxis = packages scale_threshold(\"#0054f5\") dataunit = \"Packages\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter package_name = json_extract_scalar(resources, \"$[0].data.package_name\")\n| filter package_name != null\n| comp count_distinct(package_name) as packages\n| view graph type = single yaxis = packages scale_threshold(\"#0054f5\") dataunit = \"Packages\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
@@ -4705,7 +4705,7 @@
             "creation_time": 1780546741083,
             "description": null,
             "data": {
-                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level = \"critical\"\n| comp count_distinct(item_id) as critical_items\n| view graph type = single yaxis = critical_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
+                "phrase": "dataset = koi_koi_raw\n| filter source_log_type = \"Alerts\"\n| alter koi_nid = json_extract_scalar(metadata, \"$.notification_event_id\") | dedup koi_nid | alter item_risk_level = json_extract_scalar(resources, \"$[0].data.risk_level\")\n| filter item_risk_level = \"critical\"\n| comp count_distinct(item_id) as critical_items\n| view graph type = single yaxis = critical_items scale_threshold(\"#ff0082\") dataunit = \"Items\" ",
                 "time_frame": {
                     "relativeTime": 2592000000
                 },
