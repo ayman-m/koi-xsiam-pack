@@ -15,7 +15,7 @@
 !koi-policy-status-update policy_id=1 enabled=true
 !koi-policy-status-update policy_id=1 enabled=false
 !koi-inventory-list limit=50 marketplace=vscode sort_by=first_seen sort_direction=desc
-!koi-inventory-list page=1 page_size=50 risk_level=high view=browser_extensions
+!koi-inventory-list page=1 page_size=50 risk_level=high view=extensions
 !koi-inventory-list device_id=DEVICE-123 installation_method=manual publisher_name="Microsoft"
 !koi-inventory-item-get item_id=example-extension marketplace=vscode version=1.2.3
 !koi-inventory-item-get item_id=example-extension marketplace=vscode

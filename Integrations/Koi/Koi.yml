@@ -594,7 +594,11 @@ script:
       - asc
       - desc
     - name: view
-      description: Filter by predefined view (marketplace group).
+      description: 'Filter by predefined view (marketplace group). The API accepts nine values;
+        the three added below were absent from this list even though the API serves real data for
+        two of them — mcp_servers in particular is what the "KOI - MCP Server Audit" playbook
+        passes, so it could not be selected from this dropdown. Note all_items is accepted by the
+        API but returns zero rows despite its name; to query everything, omit this argument.'
       auto: PREDEFINED
       predefined:
       - agentic_ai
@@ -603,6 +607,9 @@ script:
       - extensions
       - os_packages
       - software
+      - mcp_servers
+      - repositories
+      - all_items
     outputs:
     - contextPath: Koi.Inventory.item_id
       description: The unique identifier of the inventory item.
