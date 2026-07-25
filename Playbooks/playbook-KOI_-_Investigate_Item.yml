@@ -279,12 +279,46 @@ tasks:
       using: *id003
     nexttasks:
       '#error#':
+      - '26'
+      '#none#':
+      - '26'
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: '{"position": {"x": 450, "y": 1410}}'
+  '26':
+    id: '26'
+    taskid: koiinv00-0000-4000-8000-000000000026
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000026
+      version: -1
+      name: 'Governance: allowlist'
+      description: 'Current org allowlist. Reading BOTH lists is what separates "not governed
+        at all" from "explicitly allowed" — without this, an allowlisted item is
+        indistinguishable from an ungoverned one and stays a valid block candidate.
+        Takes no arguments; writes Koi.Allowlist.*, colliding with nothing.'
+      iscommand: true
+      brand: ''
+      script: '|||koi-allowlist-get'
+      type: regular
+    scriptarguments:
+      using: *id003
+    nexttasks:
+      '#error#':
       - '8'
       '#none#':
       - '8'
     continueonerror: true
     continueonerrortype: errorPath
-    view: '{"position": {"x": 450, "y": 1410}}'
+    view: '{"position": {"x": 450, "y": 1495}}'
   '8':
     id: '8'
     taskid: koiinv00-0000-4000-8000-000000000008
@@ -733,9 +767,58 @@ tasks:
         simple: 'false'
     nexttasks:
       '#none#':
-      - '21'
+      - '27'
     continueonerrortype: ''
     view: '{"position": {"x": 450, "y": 3620}}'
+  '27':
+    id: '27'
+    taskid: koiinv00-0000-4000-8000-000000000027
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koiinv00-0000-4000-8000-000000000027
+      version: -1
+      name: Set allowlisted_count
+      description: 'How many allowlist entries match this item. Mirrors blocklisted_count.
+        A caller MUST check this before treating an item as ungoverned: 0 blocklist hits
+        alone does not mean "not governed", it may mean "explicitly allowed".'
+      iscommand: false
+      brand: ''
+      script: SetAndHandleEmpty
+      type: regular
+    scriptarguments:
+      key:
+        simple: KoiInvestigation.allowlisted_count
+      value:
+        complex:
+          root: Koi.Allowlist
+          filters:
+          - - left:
+                iscontext: true
+                value:
+                  simple: Koi.Allowlist.item_id
+              operator: inList
+              right:
+                iscontext: true
+                value:
+                  simple: Inv.item_id
+          accessor: item_id
+          transformers:
+          - operator: count
+      append:
+        simple: 'false'
+    nexttasks:
+      '#none#':
+      - '21'
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 3705}}'
   '21':
     id: '21'
     taskid: koiinv00-0000-4000-8000-000000000021
@@ -876,6 +959,8 @@ tasks:
           | Affected users | ${KoiInvestigation.affected_users} |
 
           | On blocklist | ${KoiInvestigation.blocklisted_count} |
+
+          | On allowlist | ${KoiInvestigation.allowlisted_count} |
 
           | Remediations (item) | ${KoiInvestigation.remediation_count} |
 

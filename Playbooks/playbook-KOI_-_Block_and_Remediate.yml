@@ -138,6 +138,9 @@ tasks:
         Affected users: ${KoiInvestigation.affected_users}
 
         Remediations: ${KoiInvestigation.remediation_count} | Prior approvals: ${KoiInvestigation.approval_count}
+      Governance — on allowlist: ${KoiInvestigation.allowlisted_count} | on blocklist: ${KoiInvestigation.blocklisted_count}
+      (A non-zero allowlist count means someone explicitly ALLOWED this item. Blocking it
+      overrides that decision — confirm that is intended before approving.)
 
         AI risk summary: ${KoiInvestigation.ai_summary}'
       iscommand: false
