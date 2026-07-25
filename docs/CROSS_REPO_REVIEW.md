@@ -12,6 +12,36 @@ difference" into a portable bug fix.
 
 ---
 
+## ⚠ CORRECTIONS (2026-07-25, after auditing our own integration source)
+
+Two Tier-1 items below were mis-attributed when first written. Both measurements are
+real; the CAUSE was wrong. Recorded here rather than quietly edited.
+
+**1.6 tenant attribution — NOT a defect in this pack.** `koi_tenant_name` and
+`koi_customer_id` are not KOI API fields. This pack's integration stamps them in
+`Client.send_events` (Koi.py:1219-1224) from the optional `tenant_name` parameter
+(Koi.yml:23) and the customer id decoded from the API key. The Marketplace integration
+has no such parameter (0 references in its YAML) and never writes them. The test tenant
+now collects with the Marketplace pack, which is why the last 24h shows 0 of 61 while
+90 days shows 19,624 of 32,702 — the collector changed, KOI did not. Under this pack the
+mapping works. No fix needed; the modeling rule comment has been corrected to say so.
+
+**1.2 alert duplication — this pack already defends against it at fetch time.** Our
+integration has two-stage dedup (`get_event_id` Koi.py:324-404, `deduplicate_events`
+Koi.py:407-484): within-batch, then cross-cycle against the prior fetch's ids, keyed on
+a composite per-occurrence tuple (finding_uid, device_id, item_id, time). It was built
+through two tracked bugs and its history is documented in the source. The Marketplace
+integration has no equivalent, so the ~709x amplification measured on this tenant is a
+property of ITS collection, not ours.
+
+That does not make the dedupe work wasted, but it reframes it: the content fixes
+(parsing-rule dedupe key, Alert Triage gate, dashboard dedup) are DEFENSIVE — they make
+this pack's content correct against a koi_koi_raw populated by either collector, and
+against duplicates that can still slip past a cross-cycle HWM boundary. They are not
+repairing a defect in this pack's collection path.
+
+---
+
 ## TIER 1 — Confirmed live defects in our pack
 
 ### 1.1 Our Alert Triage chain is broken on real alerts  🔴 CRITICAL

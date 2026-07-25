@@ -66,13 +66,17 @@ filter source_log_type = "Alerts"
     xdm.observer.vendor         = _vendor,
     xdm.observer.product        = _product,
     // ── tenant (which KOI customer this event belongs to) ─────
-    // ⚠ KOI STOPPED POPULATING THESE. Measured on this tenant 2026-07-25:
-    //     last 90 days  32,702 rows -> 19,624 carry koi_tenant_name/koi_customer_id
-    //     last 24 hours      61 rows ->      0 carry either
-    // The mapping is not wrong and the historical data supports it, but anyone
-    // relying on observer.name to tell two KOI tenants apart gets nothing for
-    // events ingested from now on. Kept (harmless when null, correct on old data)
-    // pending confirmation of whether this is a transient KOI-side change.
+    // These two columns are NOT KOI API fields — this pack's integration stamps them
+    // in Client.send_events (Koi.py:1219-1224) from the optional `tenant_name`
+    // parameter (Koi.yml:23) plus the customer id decoded from the API key. The
+    // Marketplace KOI integration has no such parameter and never writes them.
+    //
+    // So on a dataset collected by the Marketplace integration these are always null,
+    // and this mapping yields nothing. Measured on the test tenant 2026-07-25, which
+    // currently runs the Marketplace pack: 19,624 of 32,702 rows over 90 days carry
+    // them (the period when this pack was collecting) and 0 of 61 over the last 24
+    // hours (since the switch). That is the collector changing, NOT a KOI-side
+    // regression and not a defect here — under this pack the mapping populates.
     xdm.observer.name              = coalesce(koi_tenant_name, koi_customer_id),
     xdm.observer.unique_identifier = koi_customer_id;
 
