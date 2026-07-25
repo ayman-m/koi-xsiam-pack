@@ -13,15 +13,26 @@
 //   * xdm.alert.severity is a String (there is no XDM_CONST.SEVERITY_*).
 //     Koi already emits the canonical ladder (Informational/Low/Medium/
 //     High/Critical), so a to_string() passthrough is enough.
-//   * event.id = koi_event_id (per-occurrence UUID); original_alert_id =
-//     finding_uid (the finding identity). These are deliberately distinct.
+//   * identity: see the note below — measured cardinalities, 2026-07-25.
+//
+// IDENTITY, MEASURED (this tenant, 30 days, 12,375 Alerts rows):
+//     notification_event_id  330 distinct  <- THE alert identity
+//     koi_event_id            25 distinct  <- the SCAN BATCH (~13 alerts each)
+//     finding_uid              3 distinct  <- the POLICY DEFINITION (~110 alerts each)
+// An earlier version of this file mapped event.id = koi_event_id calling it a
+// "per-occurrence UUID", and original_alert_id = finding_uid calling it "the finding
+// identity". Both are wrong by an order of magnitude and are corrected below.
 [MODEL: dataset=koi_koi_raw]
 filter source_log_type = "Alerts"
 | alter
     // ── identity ──────────────────────────────────────────────
-    xdm.event.id                = koi_event_id,
+    // The alert identity is the notification id. koi_event_id is the scan batch,
+    // so using it here collapsed ~13 distinct alerts onto one id.
+    xdm.event.id                = coalesce(koi_notification_id, _id),
     xdm.event.type              = alert_type,
-    xdm.alert.original_alert_id = finding_uid,
+    // original_alert_id intentionally NOT set from finding_uid: that is the policy
+    // definition (3 distinct across 330 alerts), not an alert id. Left unset rather
+    // than populated with a value that means something else.
     xdm.alert.name              = finding_title,
     xdm.alert.description       = message,
     xdm.alert.severity          = to_string(severity),
@@ -30,7 +41,10 @@ filter source_log_type = "Alerts"
     // ── target host (device the item is installed on) ─────────
     xdm.target.host.device_id   = device_id,
     xdm.target.host.hostname    = alert_hostname,
-    xdm.target.host.fqdn        = alert_hostname,
+    // fqdn intentionally NOT set from alert_hostname: Koi sends a short hostname,
+    // not a fully-qualified name. Measured 2026-07-25: 2 of 12,375 rows contain a
+    // dot, across 25 distinct hosts. Populating fqdn with a short name makes
+    // fqdn-based correlation match nothing while looking populated.
     xdm.target.host.os          = device_os_obs,
     xdm.target.host.os_family   = if(device_os_obs = "windows", XDM_CONST.OS_FAMILY_WINDOWS,
                                      device_os_obs = "mac",     XDM_CONST.OS_FAMILY_MACOS,
@@ -52,6 +66,13 @@ filter source_log_type = "Alerts"
     xdm.observer.vendor         = _vendor,
     xdm.observer.product        = _product,
     // ── tenant (which KOI customer this event belongs to) ─────
+    // ⚠ KOI STOPPED POPULATING THESE. Measured on this tenant 2026-07-25:
+    //     last 90 days  32,702 rows -> 19,624 carry koi_tenant_name/koi_customer_id
+    //     last 24 hours      61 rows ->      0 carry either
+    // The mapping is not wrong and the historical data supports it, but anyone
+    // relying on observer.name to tell two KOI tenants apart gets nothing for
+    // events ingested from now on. Kept (harmless when null, correct on old data)
+    // pending confirmation of whether this is a transient KOI-side change.
     xdm.observer.name              = coalesce(koi_tenant_name, koi_customer_id),
     xdm.observer.unique_identifier = koi_customer_id;
 
