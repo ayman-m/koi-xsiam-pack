@@ -62,7 +62,7 @@ tasks:
         simple: ${incident.details}
     nexttasks:
       '#none#':
-      - '2'
+      - '19'
     separatecontext: false
     continueonerrortype: ''
     view: "{\n  \"position\": {\n    \"x\": 450,\n    \"y\": 200\n  }\n}"
@@ -125,7 +125,9 @@ tasks:
       id: koitri00-0000-4000-8000-000000000014
       version: -1
       name: Full KOI investigation
-      description: Runs KOI - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing), exposed endpoints/users, governance state, and remediation/approval history, and posts an investigation summary to the war room.
+      description: Runs KOI - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing),
+        exposed endpoints/users, governance state, and remediation/approval history, and posts an investigation
+        summary to the war room.
       playbookId: KOI - Investigate Item
       iscommand: false
       brand: ''
@@ -210,7 +212,16 @@ tasks:
       id: koitri00-0000-4000-8000-000000000004
       version: -1
       name: Determine verdict
-      description: Classifies the alert from the KOI alert type and the catalog risk level.
+      description: "Verdict from the data KOI actually sends.\n\nMEASURED on tenant 2026-07-25, 12,375\
+        \ Alerts rows:\n  risk_level vocabulary is LOWERCASE — critical 3,277 | medium 2,752 | low 2,705\
+        \ |\n  pending 2,090 | high 1,551.\n  alert_type has exactly ONE value: policy_violation.\n\n\
+        The previous matrix compared risk_level to High/Critical/Low (the capitalised SEVERITY\nladder,\
+        \ a different field) and gated benign on alert_type == \"New Item\" AND\nrisk_level == \"Low\"\
+        . Both are unsatisfiable, so auto-close was unreachable and every\nalert fell through to Suspicious\
+        \ unless the Koidex catalog rescued it.\n\nConditions are evaluated top-down, first match wins:\
+        \ malicious, then benign, else\nSuspicious — so medium and pending (assessment incomplete) correctly\
+        \ land on Suspicious.\nThe alert_type comparisons are retained in the malicious branch only as\
+        \ harmless\nfuture-proofing should KOI widen that vocabulary; they match nothing today."
       iscommand: false
       brand: ''
       type: condition
@@ -218,6 +229,38 @@ tasks:
     - label: malicious
       condition:
       - - left:
+            iscontext: true
+            value:
+              simple: KoiContext.risk_level
+          operator: isEqualString
+          right:
+            value:
+              simple: critical
+        - left:
+            iscontext: true
+            value:
+              simple: KoiContext.risk_level
+          operator: isEqualString
+          right:
+            value:
+              simple: high
+        - left:
+            iscontext: true
+            value:
+              simple: Koi.KoidexRiskReport.risk_level
+          operator: isEqualString
+          right:
+            value:
+              simple: critical
+        - left:
+            iscontext: true
+            value:
+              simple: Koi.KoidexRiskReport.risk_level
+          operator: isEqualString
+          right:
+            value:
+              simple: high
+        - left:
             iscontext: true
             value:
               simple: KoiContext.alert_type
@@ -241,56 +284,16 @@ tasks:
           right:
             value:
               simple: Unvetted MCP Server
-        - left:
-            iscontext: true
-            value:
-              simple: KoiContext.risk_level
-          operator: isEqualString
-          right:
-            value:
-              simple: High
-        - left:
-            iscontext: true
-            value:
-              simple: KoiContext.risk_level
-          operator: isEqualString
-          right:
-            value:
-              simple: Critical
-        - left:
-            iscontext: true
-            value:
-              simple: Koi.KoidexRiskReport.risk_level
-          operator: isEqualString
-          right:
-            value:
-              simple: high
-        - left:
-            iscontext: true
-            value:
-              simple: Koi.KoidexRiskReport.risk_level
-          operator: isEqualString
-          right:
-            value:
-              simple: critical
     - label: benign
       condition:
       - - left:
             iscontext: true
             value:
-              simple: KoiContext.alert_type
-          operator: isEqualString
-          right:
-            value:
-              simple: New Item
-      - - left:
-            iscontext: true
-            value:
               simple: KoiContext.risk_level
           operator: isEqualString
           right:
             value:
-              simple: Low
+              simple: low
     nexttasks:
       '#default#':
       - '7'
@@ -500,7 +503,8 @@ tasks:
       id: koitri00-0000-4000-8000-00000000000a
       version: -1
       name: Route on verdict
-      description: Benign alerts are auto-closed; malicious alerts are escalated; suspicious alerts stay open for review.
+      description: Benign alerts are auto-closed; malicious alerts are escalated; suspicious alerts stay
+        open for review.
       iscommand: false
       brand: ''
       type: condition
@@ -559,7 +563,8 @@ tasks:
       closeReason:
         simple: Resolved
       closeNotes:
-        simple: 'KOI triage: Benign — ${KoiContext.alert_type} for ${KoiContext.item_id} with a low catalog risk level. Auto-closed.'
+        simple: 'KOI triage: Benign — ${KoiContext.alert_type} for ${KoiContext.item_id} with a low catalog
+          risk level. Auto-closed.'
     nexttasks:
       '#none#':
       - '13'
@@ -670,7 +675,8 @@ tasks:
       id: koitri00-0000-4000-8000-000000000016
       version: -1
       name: Full KOI device investigation
-      description: Runs KOI - Investigate Device on the alert's device to surface all risky items installed on that host.
+      description: Runs KOI - Investigate Device on the alert's device to surface all risky items installed
+        on that host.
       playbookId: KOI - Investigate Device
       iscommand: false
       brand: ''
@@ -701,7 +707,8 @@ tasks:
       id: koitri00-0000-4000-8000-000000000018
       version: -1
       name: Item blockable?
-      description: A Malicious verdict can be reached without a catalog item; only open a block gate when the item is identifiable.
+      description: A Malicious verdict can be reached without a catalog item; only open a block gate when
+        the item is identifiable.
       iscommand: false
       brand: ''
       type: condition
@@ -745,7 +752,9 @@ tasks:
       id: koitri00-0000-4000-8000-000000000017
       version: -1
       name: Open analyst-gated block
-      description: 'Runs KOI - Block and Remediate for the flagged item: full investigation, already-blocklisted short-circuit, then an analyst approval gate. auto_block is forced false, so the blocklist write can never fire without human approval.'
+      description: 'Runs KOI - Block and Remediate for the flagged item: full investigation, already-blocklisted
+        short-circuit, then an analyst approval gate. auto_block is forced false, so the blocklist write
+        can never fire without human approval.'
       playbookId: KOI - Block and Remediate
       iscommand: false
       brand: ''
@@ -776,7 +785,155 @@ tasks:
     quietmode: 0
     isoversize: false
     isautoswitchedtoquietmode: false
-view: "{\n  \"linkLabelsPosition\": {},\n  \"paper\": {\n    \"dimensions\": {\n      \"height\": 1760,\n      \"width\": 1080,\n      \"x\": 100,\n      \"y\": 50\n    }\n  }\n}"
+  '19':
+    id: '19'
+    taskid: koitri00-0000-4000-8000-000000000019
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koitri00-0000-4000-8000-000000000019
+      version: -1
+      name: Stamp the KOI notification id
+      description: 'Writes KoiContext.notification_id onto this alert so duplicate arrivals of the same
+        KOI notification can find each other. Best-effort: if the id is empty (legacy koi_context path,
+        or KOI omitted it) the field stays empty and the gate below falls through to normal triage.'
+      iscommand: true
+      brand: ''
+      type: regular
+      script: '|||setAlert'
+    view: '{"position": {"x": 450, "y": 300}}'
+    scriptarguments:
+      koicustomnotificationid:
+        simple: ${KoiContext.notification_id}
+    nexttasks:
+      '#error#':
+      - '20'
+      '#none#':
+      - '20'
+    continueonerrortype: errorPath
+    continueonerror: true
+  '20':
+    id: '20'
+    taskid: koitri00-0000-4000-8000-000000000020
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koitri00-0000-4000-8000-000000000020
+      version: -1
+      name: Already triaged this KOI notification?
+      description: 'KOI re-sends every still-open alert on each fetch, so one real alert arrives many
+        times. MEASURED on tenant 2026-07-25: 12,062 rows -> 17 distinct notification ids over 7 days
+        (~709x). Without this gate every duplicate ran a full item investigation, a device investigation
+        and an approval gate. Excludes this alert by id so it cannot match itself.'
+      iscommand: false
+      brand: ''
+      type: regular
+      script: SearchIncidentsV2
+    view: '{"position": {"x": 450, "y": 420}}'
+    scriptarguments:
+      query:
+        simple: koicustomnotificationid:"${KoiContext.notification_id}" and -id:${incident.id} and -status:Closed
+      size:
+        simple: '2'
+    nexttasks:
+      '#error#':
+      - '21'
+      '#none#':
+      - '21'
+    continueonerrortype: errorPath
+    continueonerror: true
+  '21':
+    id: '21'
+    taskid: koitri00-0000-4000-8000-000000000021
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: condition
+    task:
+      id: koitri00-0000-4000-8000-000000000021
+      version: -1
+      name: Duplicate of an open alert?
+      description: Requires BOTH a non-empty notification id AND a matching sibling alert. If either is
+        missing the alert is triaged normally — the gate is designed never to block work by accident,
+        only to stop provable re-runs.
+      iscommand: false
+      brand: ''
+      type: condition
+    view: '{"position": {"x": 450, "y": 540}}'
+    nexttasks:
+      '#default#':
+      - '2'
+      duplicate:
+      - '22'
+    conditions:
+    - label: duplicate
+      condition:
+      - - left:
+            iscontext: true
+            value:
+              simple: KoiContext.notification_id
+          operator: isNotEmpty
+          right:
+            value: {}
+      - - left:
+            iscontext: true
+            value:
+              simple: foundIncidents.id
+          operator: isNotEmpty
+          right:
+            value: {}
+  '22':
+    id: '22'
+    taskid: koitri00-0000-4000-8000-000000000022
+    separatecontext: false
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+    type: regular
+    task:
+      id: koitri00-0000-4000-8000-000000000022
+      version: -1
+      name: Record duplicate and stop
+      description: Makes the duplication visible instead of silent, then ends this run.
+      iscommand: false
+      brand: ''
+      type: regular
+      script: Print
+    view: '{"position": {"x": 900, "y": 660}}'
+    scriptarguments:
+      value:
+        simple: 'KOI triage: DUPLICATE — KOI notification id ${KoiContext.notification_id} was already
+          triaged on alert ${foundIncidents.id}. KOI re-sends still-open alerts on every fetch (~709x
+          measured on this tenant), so this is expected behaviour, not an error. Stopping without re-investigating.'
+    nexttasks:
+      '#none#':
+      - '13'
+    continueonerrortype: ''
+view: "{\n  \"linkLabelsPosition\": {},\n  \"paper\": {\n    \"dimensions\": {\n      \"height\": 1760,\n\
+  \      \"width\": 1080,\n      \"x\": 100,\n      \"y\": 50\n    }\n  }\n}"
 inputs: []
 outputs:
 - contextPath: Koi.Triage.verdict
