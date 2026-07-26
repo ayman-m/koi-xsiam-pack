@@ -296,11 +296,10 @@ const testSlide = (kicker, title, content, needs, steps, expects) => {
   s.addText("Installing with demisto-sdk is a developer task and needs a Standard XSIAM API key. If you are testing rather than deploying, have it installed for you and start at Test 1. Nothing else in this guide needs a developer.",
     { x: M + 0.34, y: 4.05, w: W - 0.68, h: 0.7, fontSize: 11, color: BODY, fontFace: F, margin: 0, lineSpacing: 14, valign: "top" });
   card(s, M, 5.05, W, 1.5, CARD_HI);
-  s.addText("Confirm it landed", { x: M + 0.34, y: 5.22, w: 4.0, h: 0.3, fontSize: 12.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Installed the pack, or uploading piece by piece?", { x: M + 0.34, y: 5.22, w: 7.0, h: 0.3, fontSize: 12.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
   rowList(s, [
-    "Settings → Data Sources — a KOI integration is offered.",
-    "Automation → Playbooks — 12 playbooks whose names start with KOI.",
-    "Dashboards & Reports — the KOI Alerts Dashboard exists.",
+    "Installed the whole pack: every playbook, automation, rule and the Koi Script Runner List are already on the tenant. Nothing to upload.",
+    "Uploading selectively: the PACK CONTENT column on each test is your upload checklist for that test.",
   ], M + 0.34, 5.6, W - 0.68, "tick");
 }
 
@@ -451,8 +450,8 @@ testSlide("Test 9", "Script Runner — refresh the tracker",
    "KOI deployment script in Action Center — download it from YOUR KOI console first (KOI\'s script, not a Cortex one; no parameters)",
    "An endpoint group — tag the agents, then use a dynamic group",
    'The Koi Script Runner List created (step 1)'],
-  ["Settings → Object Setup → Lists → New List, type JSON, named exactly Koi Script Runner.",
-   "Open Lists/README.md in the pack and copy the JSON block — it is formatted ready to paste (do NOT copy from list-Koi_Script_Runner.json; its data field is escaped).",
+  ["If you installed the pack: the Koi Script Runner List is already there — open Settings → Object Setup → Lists and go to the next step.",
+   "If you uploaded selectively: upload the playbooks and automation listed under PACK CONTENT, then create the List — New List, type JSON, named exactly Koi Script Runner — and paste the block from Lists/README.md (not from list-Koi_Script_Runner.json; its data field is escaped).",
    "Edit two things only: endpoint_groups (your group) and script.name (the KOI script exactly as it appears in Action Center). One entry per OS.",
    "Everything else — tracker_list, rescan_interval_hours, max_endpoints — already has working defaults.",
    "Automation → Jobs → New Job → time-triggered → playbook KOI Script Runner - Refresh Job.",
