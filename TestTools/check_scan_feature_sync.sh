@@ -61,6 +61,26 @@ for f in KoiScanTracker.py KoiScanTracker.yml; do
   fi
 done
 
+# ---- the pasteable List sample must match the shipped content item ----
+python3 - "$CUS" "$MP" <<'PYEOF'
+import json, sys
+bad = 0
+for root in sys.argv[1:]:
+    item = json.load(open(f"{root}/Lists/list-Koi_Script_Runner.json"))["data"]
+    md   = open(f"{root}/Lists/README.md").read()
+    block = md.split("```json\n", 1)[1].split("\n```", 1)[0]
+    if block != item:
+        print(f"  DRIFT    Lists/README.md block != list-Koi_Script_Runner.json data  ({root})")
+        bad = 1
+    elif "\\n" in block:
+        print(f"  DRIFT    Lists/README.md block contains escaped newlines  ({root})")
+        bad = 1
+    else:
+        print(f"  ok       Lists sample matches the content item  ({root.split('/')[-1] or 'custom'})")
+sys.exit(bad)
+PYEOF
+[ $? -ne 0 ] && drift=1
+
 echo
 if [ "$drift" -eq 0 ]; then
   echo "In sync — the two copies differ only by playbook name."

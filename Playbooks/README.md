@@ -33,9 +33,9 @@ so the playbooks stay thin. It needs the built-in **Core REST API** integration 
 ## Configuration — the `Koi Script Runner` List (JSON array)
 
 > **The pack ships this List.** [`Lists/list-Koi_Script_Runner.json`](../Lists/list-Koi_Script_Runner.json)
-> contains a working two-entry sample (Windows + macOS) plus a description explaining which
-> fields to change. Copy its `data` value into a new JSON List named exactly
-> `Koi Script Runner` rather than writing the structure from scratch.
+> installs it with the pack. To create the List by hand instead, copy the ready-to-paste
+> block in [`Lists/README.md`](../Lists/README.md) — the content item's `data` field is a
+> JSON string and therefore escaped, so it is not what you want to paste.
 
 ```json
 [
