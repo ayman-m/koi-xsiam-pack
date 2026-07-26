@@ -13,7 +13,7 @@ This pack includes an integration that fetches alerts and audit logs from KOI an
 | KOI integration | Event collector (Alerts + Audit → `koi_koi_raw`) plus 26 commands for devices, inventory, governance, allow/block lists, and the Koidex catalog |
 | Koi Parsing / Modeling Rules | Normalize raw KOI events and map them to the Cortex Data Model (XDM) |
 | Koi Alerts Dashboard | Ready-made XSIAM dashboard for KOI alert activity |
-| Koi Unified Script Runner playbooks | Job-driven, List-configured execution of KOI scripts on Cortex-Agent endpoints (see `Playbooks/README.md`) |
+| KOI Script Runner playbooks | Job-driven, List-configured execution of KOI scripts on Cortex-Agent endpoints (see `Playbooks/README.md`) |
 | `KoiScanTracker` automation | Scan-coverage ledger (a CSV List) that lets the Script Runner cover endpoint groups larger than the 100-endpoint `core-get-endpoints` cap. Ships in the pack under `Scripts/`; requires the **Core REST API** integration |
 | Alert triage, investigation & response playbooks | Automatic triage of each KOI alert: item + device investigation, a data-driven verdict, and analyst-gated response (see below) |
 
@@ -48,11 +48,11 @@ Five playbooks plus the `KoiScanTracker` automation run KOI script packages (e.g
 
 | Playbook / Script | Role |
 |---|---|
-| `Koi Unified - Script Runner` | **Scan** job entry point — loads the `Koi Script Runner` List, loops over entries |
-| `Koi Unified - Process Config Entry` | Per entry: `disabled` flag, validation (invalid entries are *reported*), notification, cleanup |
-| `Koi Unified - Execute Endpoint Script` | Asks `KoiScanTracker` for up to `max` **due, connected, right-OS** endpoints, runs the script on them, **marks** them scanned, returns `ScriptResult` |
-| `Koi Unified - Refresh Tracker` | **Refresh** job entry point — loads the same List, loops over entries |
-| `Koi Unified - Refresh Entry` | Per entry: walks the endpoint group (paged past 100 via the Core REST API) and append-only upserts membership into the scope's tracker List |
+| `KOI Script Runner - Scan Job` | **Scan** job entry point — loads the `Koi Script Runner` List, loops over entries |
+| `KOI Script Runner - Process Config Entry` | Per entry: `disabled` flag, validation (invalid entries are *reported*), notification, cleanup |
+| `KOI Script Runner - Execute Endpoint Script` | Asks `KoiScanTracker` for up to `max` **due, connected, right-OS** endpoints, runs the script on them, **marks** them scanned, returns `ScriptResult` |
+| `KOI Script Runner - Refresh Job` | **Refresh** job entry point — loads the same List, loops over entries |
+| `KOI Script Runner - Refresh Entry` | Per entry: walks the endpoint group (paged past 100 via the Core REST API) and append-only upserts membership into the scope's tracker List |
 | `KoiScanTracker` (automation) | Owns the tracker List I/O and the due / connected / OS-safe / mark logic — dispatched as `refresh` \| `select` \| `mark` |
 
 Each List entry couples one script with one OS scope and one tracker List. The `KoiScanTracker` **select** filters its connected-check by `endpoint_os`, so a Windows script can never land on a Mac even if a wrong-OS row ends up in the tracker:
@@ -76,13 +76,13 @@ Required per entry now include **`target.tracker_list`** (the CSV List this scop
 - **The List** — named exactly `Koi Script Runner`
 - **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
 
-> **How coverage works (and why a group over 100 is fine).** `core-get-endpoints` rejects any `limit` above 100 (HTTP 500) and `core-script-run` requires explicit endpoint ids, so a single run cannot cover a bigger group. The tracker solves this with two jobs: the **Refresh** job (`Koi Unified - Refresh Tracker`, infrequent — e.g. hourly) enumerates the whole group paged past 100 into a per-scope tracker List; the **Scan** job (`Koi Unified - Script Runner`, frequent — e.g. every 10 min) takes up to `max` endpoints that are *due* — never scanned, or `last_scan` older than `target.rescan_interval_hours` — dispatches the script, and marks them. Over successive runs the whole fleet is covered, then re-scanned each interval. Schedule the two jobs at non-overlapping times (Refresh is append-only and self-heals, so an occasional overlap is harmless). See `ReleaseNotes/1_5_0.md`.
+> **How coverage works (and why a group over 100 is fine).** `core-get-endpoints` rejects any `limit` above 100 (HTTP 500) and `core-script-run` requires explicit endpoint ids, so a single run cannot cover a bigger group. The tracker solves this with two jobs: the **Refresh** job (`KOI Script Runner - Refresh Job`, infrequent — e.g. hourly) enumerates the whole group paged past 100 into a per-scope tracker List; the **Scan** job (`KOI Script Runner - Scan Job`, frequent — e.g. every 10 min) takes up to `max` endpoints that are *due* — never scanned, or `last_scan` older than `target.rescan_interval_hours` — dispatches the script, and marks them. Over successive runs the whole fleet is covered, then re-scanned each interval. Schedule the two jobs at non-overlapping times (Refresh is append-only and self-heals, so an occasional overlap is harmless). See `ReleaseNotes/1_5_0.md`.
 
 Everything binds by name at run time — renaming any of these without updating the List makes the next run fail or skip (the war-room reason says which reference broke).
 
 ## Alert triage, investigation & response
 
-Attach **`KOI - Alert Triage`** to your KOI alerts and each one is investigated, classified and routed automatically:
+Attach **`KOI IR - Alert Triage`** to your KOI alerts and each one is investigated, classified and routed automatically:
 
 ```
 alert → extract koi_context → item investigation → device investigation
@@ -92,13 +92,13 @@ alert → extract koi_context → item investigation → device investigation
 
 | Playbook | Role |
 |---|---|
-| `KOI - Alert Triage` | Main. Orchestrates the flow above |
-| `KOI - Extract Alert Context` | Parses the embedded `koi_context` JSON into `KoiContext` |
-| `KOI - Investigate Item` | Catalog risk + AI summary, org exposure (installs/signing/publisher/endpoints), affected endpoints & users, blocklist state, remediation & approval history |
-| `KOI - Investigate Device` | Everything installed on the affected host, which of it is risky, plus host remediations |
-| `KOI - Enrich Item` | Lightweight enrichment (catalog risk + endpoint exposure) |
-| `KOI - Block and Remediate` | Investigates, skips already-blocked items, blocks org-wide **only after analyst approval** |
-| `KOI - MCP Server Audit` | Scheduled hunt for risky MCP servers |
+| `KOI IR - Alert Triage` | Main. Orchestrates the flow above |
+| `KOI IR - Extract Alert Context` | Parses the embedded `koi_context` JSON into `KoiContext` |
+| `KOI IR - Investigate Item` | Catalog risk + AI summary, org exposure (installs/signing/publisher/endpoints), affected endpoints & users, blocklist state, remediation & approval history |
+| `KOI IR - Investigate Device` | Everything installed on the affected host, which of it is risky, plus host remediations |
+| `KOI IR - Enrich Item` | Lightweight enrichment (catalog risk + endpoint exposure) |
+| `KOI IR - Block and Remediate` | Investigates, skips already-blocked items, blocks org-wide **only after analyst approval** |
+| `KOI Hunting - MCP Server Audit` | Scheduled hunt for risky MCP servers |
 
 **Verdict logic** — keyed on KOI's own `alert_type` and `risk_level`, corroborated by the independent Koidex catalog risk:
 
@@ -108,7 +108,7 @@ alert → extract koi_context → item investigation → device investigation
 | **Benign** | `alert_type` = New Item **and** `risk_level` = Low | Auto-close (Resolved) |
 | **Suspicious** | anything else (safe default) | Leave open for the analyst |
 
-> **Response safety.** `koi-blocklist-items-add` is the only state-changing action, and it is gated: triage always calls `KOI - Block and Remediate` with `auto_block=false`, so a Malicious verdict parks on an approval task and can never block software without a human decision.
+> **Response safety.** `koi-blocklist-items-add` is the only state-changing action, and it is gated: triage always calls `KOI IR - Block and Remediate` with `auto_block=false`, so a Malicious verdict parks on an approval task and can never block software without a human decision.
 
 Details in [`Playbooks/README.md`](Playbooks/README.md) and §11 of the customer guide.
 
@@ -176,17 +176,17 @@ what gets called before what calls it — automation first, then leaf sub-playbo
 | # | Item | Where |
 |---|---|---|
 | 1 | `KoiScanTracker` (automation) | Automation → Scripts → Import |
-| 2 | `Koi Unified - Execute Endpoint Script` | Automation → Playbooks → Import |
-| 3 | `Koi Unified - Process Config Entry` | Automation → Playbooks → Import |
-| 4 | `Koi Unified - Refresh Entry` | Automation → Playbooks → Import |
-| 5 | `Koi Unified - Refresh Tracker` | Automation → Playbooks → Import |
-| 6 | `Koi Unified - Script Runner` | Automation → Playbooks → Import |
+| 2 | `KOI Script Runner - Execute Endpoint Script` | Automation → Playbooks → Import |
+| 3 | `KOI Script Runner - Process Config Entry` | Automation → Playbooks → Import |
+| 4 | `KOI Script Runner - Refresh Entry` | Automation → Playbooks → Import |
+| 5 | `KOI Script Runner - Refresh Job` | Automation → Playbooks → Import |
+| 6 | `KOI Script Runner - Scan Job` | Automation → Playbooks → Import |
 | 7 | `Koi Script Runner` (JSON List) | Settings → Object Setup → Lists → New List |
 
 Then create **two** Time-triggered Jobs (Automation → Jobs → New Job):
 
-- **Scan** — playbook `Koi Unified - Script Runner`, frequent (e.g. every 10 minutes).
-- **Refresh** — playbook `Koi Unified - Refresh Tracker`, less frequent (e.g. hourly). **Run it once before the first Scan** so the tracker is populated.
+- **Scan** — playbook `KOI Script Runner - Scan Job`, frequent (e.g. every 10 minutes).
+- **Refresh** — playbook `KOI Script Runner - Refresh Job`, less frequent (e.g. hourly). **Run it once before the first Scan** so the tracker is populated.
 
 > **Enable each Job after creating it.** A new Job can land disabled — confirm its scheduling toggle is **on** and a next-run time is shown, or it never fires (the tracker stays empty and Scan has nothing to do).
 
@@ -207,7 +207,7 @@ it must be **parameterless**); an **endpoint group** containing connected, uniso
 | Job → **Run now** → open the run | Work Plan green; `ScriptResult ok:true` + `action_id` per executed entry; `SKIPPED` info entries for OS scopes with no endpoints |
 | Action Center → the `action_id` | `COMPLETED_SUCCESSFULLY` on the expected endpoints |
 | Koi Alerts Dashboard | Widgets render after ingestion |
-| Run `KOI - Alert Triage` on a KOI alert | War room shows an item investigation summary, a device investigation summary, and a triage summary with the verdict |
+| Run `KOI IR - Alert Triage` on a KOI alert | War room shows an item investigation summary, a device investigation summary, and a triage summary with the verdict |
 | Let a Malicious verdict reach the block step | Run parks at `runStatus: waiting` on the approval task and `koi-blocklist-items-add` has **not** executed |
 
 ## Documentation

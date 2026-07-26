@@ -1,7 +1,7 @@
-id: KOI - Extract Alert Context
+id: KOI IR - Extract Alert Context
 version: -1
 fromversion: 6.10.0
-name: KOI - Extract Alert Context
+name: KOI IR - Extract Alert Context
 description: 'Builds the KoiContext object every KOI triage/investigation playbook consumes.
 
 

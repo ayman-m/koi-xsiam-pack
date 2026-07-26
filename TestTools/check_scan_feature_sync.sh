@@ -7,8 +7,8 @@
 # difference is the playbook name: both packs land on the same tenant and XSOAR keys
 # playbooks by id, so identical ids would make one pack silently overwrite the other's.
 #
-#   custom repo :  "Koi Unified - <X>"
-#   marketplace :  "KOI Ext - Unified <X>"
+#   custom repo :  "KOI Script Runner - <X>"
+#   marketplace :  "KOI Ext Script Runner - <X>"
 #
 # Exits non-zero on any other difference.
 #
@@ -26,7 +26,7 @@ if [ ! -d "$MP" ]; then
   exit 2
 fi
 
-PLAYBOOKS=(Script_Runner Process_Config_Entry Execute_Endpoint_Script Refresh_Tracker Refresh_Entry)
+PLAYBOOKS=(Scan_Job Process_Config_Entry Execute_Endpoint_Script Refresh_Job Refresh_Entry)
 drift=0
 
 echo "Scan-feature sync check"
@@ -35,13 +35,13 @@ echo "  marketplace : $MP"
 echo
 
 for pb in "${PLAYBOOKS[@]}"; do
-  a="$CUS/Playbooks/playbook-Koi_Unified_-_${pb}.yml"
-  b="$MP/Playbooks/playbook-KOI_Ext_-_Unified_${pb}.yml"
+  a="$CUS/Playbooks/playbook-KOI_Script_Runner_-_${pb}.yml"
+  b="$MP/Playbooks/playbook-KOI_Ext_Script_Runner_-_${pb}.yml"
   if [ ! -f "$a" ] || [ ! -f "$b" ]; then
     printf "  MISSING  %s\n" "$pb"; drift=1; continue
   fi
   # normalise the naming convention, then compare everything else
-  d=$(diff <(sed 's/KOI Ext - Unified /Koi Unified - /g' "$b") "$a" || true)
+  d=$(diff <(sed 's/KOI Ext Script Runner - /KOI Script Runner - /g' "$b") "$a" || true)
   if [ -n "$d" ]; then
     printf "  DRIFT    %s\n" "$pb"
     echo "$d" | sed 's/^/             /'
@@ -66,7 +66,7 @@ if [ "$drift" -eq 0 ]; then
   echo "In sync — the two copies differ only by playbook name."
 else
   echo "OUT OF SYNC. Port the change to the other repo before releasing either."
-  echo "Reminder: the marketplace copy renames 'Koi Unified - X' to 'KOI Ext - Unified X';"
+  echo "Reminder: the marketplace copy renames 'KOI Script Runner - X' to 'KOI Ext Script Runner - X';"
   echo "the KoiScanTracker automation and the 'Koi Script Runner' List name stay identical."
 fi
 exit "$drift"

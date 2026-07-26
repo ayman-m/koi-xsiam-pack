@@ -70,7 +70,7 @@ must use `count_distinct` on the notification id.
 vocabulary, and must not re-investigate the same alert repeatedly.
 
 **Do**
-1. Attach `KOI - Alert Triage` to a KOI alert (or `!setPlaybook playbookId="KOI - Alert Triage"`).
+1. Attach `KOI IR - Alert Triage` to a KOI alert (or `!setPlaybook playbookId="KOI IR - Alert Triage"`).
 2. Open the war room.
 
 **Expect**
@@ -97,7 +97,7 @@ KOI fields through. This is the most common cause of "everything comes out Suspi
 **Why:** the verdict is only as good as what's behind it, and an analyst approving a block
 needs the whole picture.
 
-**Do** — run `KOI - Investigate Item` with an `item_id` + `marketplace`.
+**Do** — run `KOI IR - Investigate Item` with an `item_id` + `marketplace`.
 
 **Expect** a `KoiInvestigation` summary carrying catalog risk and AI summary, org exposure
 (installs, endpoints, users), and **both** governance counts — `blocklisted_count` *and*
@@ -107,7 +107,7 @@ needs the whole picture.
 "somebody explicitly allowed this". Without the allowlist read, an allowlisted item stays a
 valid block candidate.
 
-**Device side** — run `KOI - Investigate Device` with a device id. Expect everything
+**Device side** — run `KOI IR - Investigate Device` with a device id. Expect everything
 installed on that host plus a risky-items table.
 
 **If enrichment is empty but the playbook is green:** that's by design — enrichment is
@@ -119,7 +119,7 @@ best-effort. Confirm reachability with `!koi-users-list limit=1`.
 
 **Why:** the only state-changing action in the pack. It must never fire without a human.
 
-**Do** — run `KOI - Block and Remediate` with an `item_id` and `marketplace`.
+**Do** — run `KOI IR - Block and Remediate` with an `item_id` and `marketplace`.
 
 **Expect**
 - The run **parks on an approval task**.
@@ -138,7 +138,7 @@ completes without parking, stop and investigate before using the pack in product
 **Why:** finds risk nobody alerted on.
 
 **Do**
-1. `KOI - MCP Server Audit` — attach to a Job or run directly.
+1. `KOI Hunting - MCP Server Audit` — attach to a Job or run directly.
 2. Open `docs/xql/` and run a few hunts (start with `H2.1`, `H1.3`).
 
 **Expect** — the audit lists MCP servers at or above the risk threshold. The hunts return
@@ -162,8 +162,8 @@ larger than the platform's 100-endpoint query cap.
 **Do**
 1. Create the JSON List `Koi Script Runner` with `tracker_list` and
    `rescan_interval_hours` set per entry.
-2. Run the **Refresh** job (`Koi Unified - Refresh Tracker`) **first**.
-3. Then run the **Scan** job (`Koi Unified - Script Runner`).
+2. Run the **Refresh** job (`KOI Script Runner - Refresh Job`) **first**.
+3. Then run the **Scan** job (`KOI Script Runner - Scan Job`).
 
 **Expect**
 - Refresh fills the tracker List with `endpoint_id,last_scan` rows — it creates the List.

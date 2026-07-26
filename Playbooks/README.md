@@ -1,4 +1,4 @@
-# Koi Unified Script Runner — Playbooks
+# KOI Script Runner — Playbooks
 
 A unified, job-driven playbook set for periodically executing the KOI deployment
 script on Cortex-Agent endpoints. It merges four independently-built playbooks
@@ -12,18 +12,18 @@ was last scanned. Two time-triggered Jobs share the one `Koi Script Runner` conf
 
 ```
 Scan Job (frequent — e.g. every 10 min)
- └─ Koi Unified - Script Runner            (main; reads the "Koi Script Runner" List)
+ └─ KOI Script Runner - Scan Job            (main; reads the "Koi Script Runner" List)
      └─ loop: for each configuration entry (separate context per entry)
-         └─ Koi Unified - Process Config Entry   (validate, notify, cleanup)
-             └─ Koi Unified - Execute Endpoint Script
+         └─ KOI Script Runner - Process Config Entry   (validate, notify, cleanup)
+             └─ KOI Script Runner - Execute Endpoint Script
                  └─ KoiScanTracker select  → up to `max` due, connected, right-OS ids
                     → core-script-run       → dispatch the script (mark-on-dispatch)
                     → KoiScanTracker mark    → stamp last_scan=now
 
 Refresh Job (infrequent — e.g. hourly)
- └─ Koi Unified - Refresh Tracker           (reads the same List)
+ └─ KOI Script Runner - Refresh Job           (reads the same List)
      └─ loop: for each configuration entry
-         └─ Koi Unified - Refresh Entry       (KoiScanTracker refresh: walk the group
+         └─ KOI Script Runner - Refresh Entry       (KoiScanTracker refresh: walk the group
             paged past 100 via core-api-post, append-only upsert into the tracker List)
 ```
 
@@ -108,24 +108,24 @@ A second, independent playbook set triages KOI **alerts** ingested into Cortex X
 
 | Playbook | Role |
 |---|---|
-| `KOI - Alert Triage` | Main. Extracts context → runs the **full item investigation** (`KOI - Investigate Item`) → runs the **device investigation** (`KOI - Investigate Device`, when the alert carries a device) → enriches via `koi-koidex-risk-report` → computes a verdict → posts a summary → routes (auto-close / escalate / leave open). |
-| `KOI - Extract Alert Context` | Sub. Parses the `koi_context={...}` JSON the collector embeds in the alert description into the `KoiContext` object (collapsing it to a single object so `KoiContext.<field>` resolves as a scalar, not a 1-element array). |
-| `KOI - Investigate Item` | Sub. Given an item + marketplace, gathers a **comprehensive item investigation** into a `KoiInvestigation` object + war-room summary: catalog risk & AI risk summary (`koi-koidex-risk-report`), the org's inventory record (installs / signing / endpoint count / org risk), exposed endpoints & users (`koi-inventory-item-endpoints-list`, only when the installed version is known), governance state (`koi-blocklist-get`), and remediation & approval history filtered to the item. Best-effort; reusable outside triage. |
-| `KOI - Investigate Device` | Sub. Given a device id (+ optional hostname), lists everything installed on the host (`koi-device-inventory-get`), flags items at/above the configured risk level (`risk_levels`, default `high,critical`), pulls host remediations (`koi-remediations-list hostname=…`), and posts a **device posture summary + a risky-items table**. Reusable standalone (pass a device id) or from triage (`KoiContext.device_id` / `alert_hostname`). Best-effort. |
+| `KOI IR - Alert Triage` | Main. Extracts context → runs the **full item investigation** (`KOI IR - Investigate Item`) → runs the **device investigation** (`KOI IR - Investigate Device`, when the alert carries a device) → enriches via `koi-koidex-risk-report` → computes a verdict → posts a summary → routes (auto-close / escalate / leave open). |
+| `KOI IR - Extract Alert Context` | Sub. Parses the `koi_context={...}` JSON the collector embeds in the alert description into the `KoiContext` object (collapsing it to a single object so `KoiContext.<field>` resolves as a scalar, not a 1-element array). |
+| `KOI IR - Investigate Item` | Sub. Given an item + marketplace, gathers a **comprehensive item investigation** into a `KoiInvestigation` object + war-room summary: catalog risk & AI risk summary (`koi-koidex-risk-report`), the org's inventory record (installs / signing / endpoint count / org risk), exposed endpoints & users (`koi-inventory-item-endpoints-list`, only when the installed version is known), governance state (`koi-blocklist-get`), and remediation & approval history filtered to the item. Best-effort; reusable outside triage. |
+| `KOI IR - Investigate Device` | Sub. Given a device id (+ optional hostname), lists everything installed on the host (`koi-device-inventory-get`), flags items at/above the configured risk level (`risk_levels`, default `high,critical`), pulls host remediations (`koi-remediations-list hostname=…`), and posts a **device posture summary + a risky-items table**. Reusable standalone (pass a device id) or from triage (`KoiContext.device_id` / `alert_hostname`). Best-effort. |
 
 **Verdict logic** (keyed on KOI's own `alert_type` and `risk_level`, with the catalog risk level as a bonus signal):
 
 | Verdict | Condition | Action |
 |---|---|---|
-| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity, then — when the item is identifiable — open an **analyst-gated block** via `KOI - Block and Remediate` (`auto_block` forced `false`, so the blocklist write never fires without human approval) |
+| **Malicious** | `alert_type` ∈ {Removed from Marketplace, Publisher Compromised, Unvetted MCP Server}, or `risk_level` High/Critical, or catalog risk high/critical | Raise severity, then — when the item is identifiable — open an **analyst-gated block** via `KOI IR - Block and Remediate` (`auto_block` forced `false`, so the blocklist write never fires without human approval) |
 | **Benign** | `alert_type` = New Item **and** `risk_level` = Low | Auto-close (Resolved) |
 | **Suspicious** | anything else (safe default) | Keep open for analyst |
 
-Attach `KOI - Alert Triage` to KOI alerts (source `koi`). It reads the alert description from `${incident.details}`; if your alert generation maps the KOI payload to a different field, adjust the `alert_description` input on the extract sub-playbook.
+Attach `KOI IR - Alert Triage` to KOI alerts (source `koi`). It reads the alert description from `${incident.details}`; if your alert generation maps the KOI payload to a different field, adjust the `alert_description` input on the extract sub-playbook.
 
-Validated on-tenant end to end through an **office-egress engine** (so the KOI commands actually return data, not `403`): the triage runs `KOI - Investigate Item`, posts the investigation summary, and the verdict now reflects real catalog data — e.g. a `Vulnerable Dependency` alert on `axios` (whose KOI catalog risk is **High**) escalates to **Malicious**.
+Validated on-tenant end to end through an **office-egress engine** (so the KOI commands actually return data, not `403`): the triage runs `KOI IR - Investigate Item`, posts the investigation summary, and the verdict now reflects real catalog data — e.g. a `Vulnerable Dependency` alert on `axios` (whose KOI catalog risk is **High**) escalates to **Malicious**.
 
-> Note: `KOI - Investigate Item` runs as a sub-playbook, where the platform's array/object DT handling differs from the parent; a few investigation-summary fields may render with array brackets (`["high"]`, `[0]`). The values are correct and the analyst-facing triage summary renders as clean scalars.
+> Note: `KOI IR - Investigate Item` runs as a sub-playbook, where the platform's array/object DT handling differs from the parent; a few investigation-summary fields may render with array brackets (`["high"]`, `[0]`). The values are correct and the analyst-facing triage summary renders as clean scalars.
 
 > The triage playbooks call `koi-koidex-risk-report` through a configured KOI integration instance. Enrichment is best-effort (continue-on-error): if the instance can't reach the KOI API, the verdict still resolves from the alert's own fields.
 
@@ -135,9 +135,9 @@ Built on the read-only + governance commands, these extend triage into response 
 
 | Playbook | Type | What it does |
 |---|---|---|
-| `KOI - Enrich Item` | Sub | Given an item + marketplace, gathers catalog risk (`koi-koidex-risk-report`) and endpoint exposure (`koi-inventory-item-endpoints-list`) into a `KoiEnrichment` object. Reusable by triage, block, and hunts. |
-| `KOI - Block and Remediate` | Main | Runs the **full investigation** (`KOI - Investigate Item`), short-circuits if the item is **already on the org blocklist**, then presents an **analyst approval gate** showing the complete picture — catalog risk + AI summary, org risk / publisher / signing, installs, endpoints & affected users, remediation and prior-approval history — and only on approval adds it to the blocklist (`koi-blocklist-items-add`). Safe by default: the write never fires without approval unless `auto_block=true`. Analyst-invoked (supply `item_id` / `marketplace`), or callable as a sub-playbook from a Malicious triage verdict. |
-| `KOI - MCP Server Audit` | Scheduled | Enumerates MCP-server inventory, flags those at/above a risk threshold, and reports them. Attach to a time-triggered Job for continuous agentic-AI hygiene. |
+| `KOI IR - Enrich Item` | Sub | Given an item + marketplace, gathers catalog risk (`koi-koidex-risk-report`) and endpoint exposure (`koi-inventory-item-endpoints-list`) into a `KoiEnrichment` object. Reusable by triage, block, and hunts. |
+| `KOI IR - Block and Remediate` | Main | Runs the **full investigation** (`KOI IR - Investigate Item`), short-circuits if the item is **already on the org blocklist**, then presents an **analyst approval gate** showing the complete picture — catalog risk + AI summary, org risk / publisher / signing, installs, endpoints & affected users, remediation and prior-approval history — and only on approval adds it to the blocklist (`koi-blocklist-items-add`). Safe by default: the write never fires without approval unless `auto_block=true`. Analyst-invoked (supply `item_id` / `marketplace`), or callable as a sub-playbook from a Malicious triage verdict. |
+| `KOI Hunting - MCP Server Audit` | Scheduled | Enumerates MCP-server inventory, flags those at/above a risk threshold, and reports them. Attach to a time-triggered Job for continuous agentic-AI hygiene. |
 
 > **Connectivity requirement.** These playbooks call the KOI integration commands
 > (koidex, inventory, blocklist) through a configured KOI instance. The XSIAM
@@ -178,8 +178,8 @@ configuration" task in the main playbook.
 Create **two** time-triggered Jobs (Investigation & Response → Automation → Jobs); each playbook
 closes its own investigation at the end of every run:
 
-- **Scan** — attach **`Koi Unified - Script Runner`**, frequent (e.g. every 10 minutes).
-- **Refresh** — attach **`Koi Unified - Refresh Tracker`**, less frequent (e.g. hourly).
+- **Scan** — attach **`KOI Script Runner - Scan Job`**, frequent (e.g. every 10 minutes).
+- **Refresh** — attach **`KOI Script Runner - Refresh Job`**, less frequent (e.g. hourly).
 
 Schedule them at non-overlapping times. Refresh is append-only (it never writes `last_scan`) and
 Scan only updates existing rows, so an occasional overlap self-heals on the next cycle. Run Refresh

@@ -1,7 +1,7 @@
-id: KOI - Alert Triage
+id: KOI IR - Alert Triage
 version: -1
 fromversion: 6.10.0
-name: KOI - Alert Triage
+name: KOI IR - Alert Triage
 description: 'Triages a KOI alert end to end: extracts the embedded KOI context, enriches
 
   the flagged item against the KOI catalog (koi-koidex-risk-report), computes a
@@ -53,7 +53,7 @@ tasks:
       version: -1
       name: Extract KOI alert context
       description: Parses the koi_context JSON from the alert description.
-      playbookId: KOI - Extract Alert Context
+      playbookId: KOI IR - Extract Alert Context
       iscommand: false
       brand: ''
       type: playbook
@@ -125,10 +125,10 @@ tasks:
       id: koitri00-0000-4000-8000-000000000014
       version: -1
       name: Full KOI investigation
-      description: Runs KOI - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing),
+      description: Runs KOI IR - Investigate Item to gather catalog risk + AI summary, org exposure (installs/signing),
         exposed endpoints/users, governance state, and remediation/approval history, and posts an investigation
         summary to the war room.
-      playbookId: KOI - Investigate Item
+      playbookId: KOI IR - Investigate Item
       iscommand: false
       brand: ''
       type: playbook
@@ -675,9 +675,9 @@ tasks:
       id: koitri00-0000-4000-8000-000000000016
       version: -1
       name: Full KOI device investigation
-      description: Runs KOI - Investigate Device on the alert's device to surface all risky items installed
+      description: Runs KOI IR - Investigate Device on the alert's device to surface all risky items installed
         on that host.
-      playbookId: KOI - Investigate Device
+      playbookId: KOI IR - Investigate Device
       iscommand: false
       brand: ''
       type: playbook
@@ -752,10 +752,10 @@ tasks:
       id: koitri00-0000-4000-8000-000000000017
       version: -1
       name: Open analyst-gated block
-      description: 'Runs KOI - Block and Remediate for the flagged item: full investigation, already-blocklisted
+      description: 'Runs KOI IR - Block and Remediate for the flagged item: full investigation, already-blocklisted
         short-circuit, then an analyst approval gate. auto_block is forced false, so the blocklist write
         can never fire without human approval.'
-      playbookId: KOI - Block and Remediate
+      playbookId: KOI IR - Block and Remediate
       iscommand: false
       brand: ''
       type: playbook

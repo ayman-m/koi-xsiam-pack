@@ -1,7 +1,7 @@
-id: KOI - Investigate Device
+id: KOI IR - Investigate Device
 version: -1
 fromversion: 6.10.0
-name: KOI - Investigate Device
+name: KOI IR - Investigate Device
 description: Device-centric KOI investigation. Given a device, lists everything installed (koi-device-inventory-get), flags the items at/above the configured risk level, pulls host remediations, and posts a device posture summary + a risky-items table. Reusable from alert triage (pass KoiContext.device_id / alert_hostname) or standalone. Best-effort.
 starttaskid: '0'
 tasks:

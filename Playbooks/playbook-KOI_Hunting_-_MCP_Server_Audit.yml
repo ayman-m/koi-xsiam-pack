@@ -1,7 +1,7 @@
-id: KOI - MCP Server Audit
+id: KOI Hunting - MCP Server Audit
 version: -1
 fromversion: 6.10.0
-name: KOI - MCP Server Audit
+name: KOI Hunting - MCP Server Audit
 description: |-
   Proactive hunt for risky MCP (Model Context Protocol) servers discovered by
   KOI. Enumerates MCP-server inventory items, and for each one at or above the

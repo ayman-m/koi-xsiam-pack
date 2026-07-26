@@ -111,7 +111,7 @@ const model = [
         { text: "No Job run means no scan — not a delayed scan, not a partial scan. Nothing. Any investigation into stale KOI data should start with the Job, not the endpoint." }]),
   h2("1.2 The end-to-end chain"),
   p("Every data point you see in KOI traverses this chain. Knowing which link you are looking at tells you which tool to reach for:"),
-  code("XSIAM Job  ->  Koi Unified - Script Runner  ->  core-script-run"),
+  code("XSIAM Job  ->  KOI Script Runner - Scan Job  ->  core-script-run"),
   code("        ->  KOI deployment script on the endpoint"),
   code("        ->  reads filesystem / registry / browser profiles"),
   code("        ->  HTTPS POST to the KOI backend"),

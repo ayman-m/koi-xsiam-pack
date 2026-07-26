@@ -4,7 +4,7 @@
     "modified": "2026-07-25T00:00:00Z",
     "name": "KOI Notification ID",
     "ownerOnly": false,
-    "description": "The KOI notification_event_id for this alert — the only per-alert identity KOI emits. Written by 'KOI - Extract Alert Context' and used by 'KOI - Alert Triage' to detect duplicates: KOI re-sends every still-open alert on each fetch (measured ~709x over 7 days), so without this the same alert is investigated many times over. Note koi_event_id is the scan batch and finding_uid is the policy definition; neither is per-alert.",
+    "description": "The KOI notification_event_id for this alert — the only per-alert identity KOI emits. Written by 'KOI IR - Extract Alert Context' and used by 'KOI IR - Alert Triage' to detect duplicates: KOI re-sends every still-open alert on each fetch (measured ~709x over 7 days), so without this the same alert is investigated many times over. Note koi_event_id is the scan batch and finding_uid is the policy definition; neither is per-alert.",
     "cliName": "koicustomnotificationid",
     "type": "shortText",
     "closeForm": false,

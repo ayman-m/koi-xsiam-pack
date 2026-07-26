@@ -1,7 +1,7 @@
-id: KOI - Investigate Item
+id: KOI IR - Investigate Item
 version: -1
 fromversion: 6.10.0
-name: KOI - Investigate Item
+name: KOI IR - Investigate Item
 description: Comprehensive, reusable investigation for a KOI catalog item. Coerces inputs to scalars, gathers catalog risk + AI summary, org inventory record (installs/signing/endpoint count/org risk), exposed endpoints & users (when the installed version is known), governance state, and remediation & approval history into a KoiInvestigation object plus a war-room summary. Best-effort (continue-on-error).
 starttaskid: '0'
 tasks:

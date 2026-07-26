@@ -427,7 +427,7 @@ const flowBox = (s, x, y, w, h, title, sub, accent = ORANGE) => {
     [
       { text: "!koi-devices-list limit=5", options: { fontFace: MONO, color: CYAN, fontSize: 11, breakLine: true } },
       { text: "dataset = koi_koi_raw | comp count() as events by source_log_type", options: { fontFace: MONO, color: CYAN, fontSize: 11, breakLine: true } },
-      { text: "Attach KOI - Alert Triage to a KOI alert and confirm the investigation summaries and verdict appear in the war room.", options: { color: BODY, fontSize: 11 } },
+      { text: "Attach KOI IR - Alert Triage to a KOI alert and confirm the investigation summaries and verdict appear in the war room.", options: { color: BODY, fontSize: 11 } },
     ],
     { x: M + 0.32, y: 5.33, w: W - 0.64, h: 0.95, fontFace: F, margin: 0, lineSpacing: 15, valign: "top" }
   );

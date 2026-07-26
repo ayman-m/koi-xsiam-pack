@@ -1,7 +1,7 @@
-id: Koi Unified - Execute Endpoint Script
+id: KOI Script Runner - Execute Endpoint Script
 version: -1
 fromversion: 6.10.0
-name: Koi Unified - Execute Endpoint Script
+name: KOI Script Runner - Execute Endpoint Script
 description: |-
   Executes a script from the Action Center script library on targeted endpoints.
   Resolves the script UUID from its name (unless a UUID is supplied), targets

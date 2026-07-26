@@ -1,8 +1,8 @@
-id: KOI - Block and Remediate
+id: KOI IR - Block and Remediate
 version: -1
 fromversion: 6.10.0
-name: KOI - Block and Remediate
-description: 'Response playbook for a flagged KOI item. Enriches the item (KOI - Enrich Item),
+name: KOI IR - Block and Remediate
+description: 'Response playbook for a flagged KOI item. Enriches the item (KOI IR - Enrich Item),
 
   presents an analyst approval gate showing the catalog risk and endpoint exposure,
 
@@ -13,7 +13,7 @@ description: 'Response playbook for a flagged KOI item. Enriches the item (KOI -
   without explicit approval.
 
 
-  Typically chained from KOI - Alert Triage on a Malicious verdict, or run
+  Typically chained from KOI IR - Alert Triage on a Malicious verdict, or run
 
   manually against an item_id / marketplace.'
 starttaskid: '0'
@@ -51,7 +51,7 @@ tasks:
       version: -1
       name: Investigate the item
       description: 'Runs the full KOI investigation: catalog risk + AI summary, org exposure (installs/signing/endpoints/users), governance state, and remediation & approval history.'
-      playbookId: KOI - Investigate Item
+      playbookId: KOI IR - Investigate Item
       iscommand: false
       brand: ''
       type: playbook

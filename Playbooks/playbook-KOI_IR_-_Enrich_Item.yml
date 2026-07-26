@@ -1,7 +1,7 @@
-id: KOI - Enrich Item
+id: KOI IR - Enrich Item
 version: -1
 fromversion: 6.10.0
-name: KOI - Enrich Item
+name: KOI IR - Enrich Item
 description: |-
   Reusable enrichment for a KOI catalog item: pulls the KOI catalog risk and
   compliance report (koi-koidex-risk-report) and the endpoints on which the item

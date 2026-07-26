@@ -45,7 +45,7 @@ repairing a defect in this pack's collection path.
 ## TIER 1 — Confirmed live defects in our pack
 
 ### 1.1 Our Alert Triage chain is broken on real alerts  🔴 CRITICAL
-`KOI - Extract Alert Context` regex-extracts `koi_context=(\{.*\})` from `${incident.details}`.
+`KOI IR - Extract Alert Context` regex-extracts `koi_context=(\{.*\})` from `${incident.details}`.
 **Verified on tenant 2026-07-24:** real correlation alerts do NOT contain it. Only the
 `[SIM3]` simulated alerts we generated ourselves do.
 
@@ -94,7 +94,7 @@ We have 10 command call sites passing raw event values. On the WRITE path this m
 **a block the analyst approved that silently never happened.**
 
 ### 1.4 Allowlisted items get routed for blocking  🔴  [VERIFIED]
-Our `KOI - Investigate Item` never calls `koi-allowlist-get` and never sets
+Our `KOI IR - Investigate Item` never calls `koi-allowlist-get` and never sets
 `KoiInvestigation.allowlisted_count`. Our integration HAS the command (Koi.yml:191); no
 playbook anywhere calls it. Governance therefore can never distinguish "not governed" from
 "explicitly allowed" -> an allowlisted item is a valid block candidate.

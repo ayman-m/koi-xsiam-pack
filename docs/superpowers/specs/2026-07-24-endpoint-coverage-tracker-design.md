@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-24
 **Status:** Approved, building
-**Component:** Koi Unified Script Runner playbooks
+**Component:** KOI Script Runner playbooks
 
 ## Problem
 
@@ -188,10 +188,10 @@ deployment script would need that input added. Out of scope while the deployment
 | Item | Change |
 |---|---|
 | `KoiScanTracker` (automation) | **new** — owns tracker List I/O, date logic, the first_seen walk |
-| `Koi Unified - Refresh Tracker` | new (Job A entry, loops List entries → `KoiScanTracker action=refresh`) |
-| `Koi Unified - Script Runner` | Job B entry (role unchanged) |
-| `Koi Unified - Process Config Entry` | `KoiScanTracker action=select` → run → `action=mark` |
-| `Koi Unified - Execute Endpoint Script` | takes selected ids, runs, returns dispatched ids |
+| `KOI Script Runner - Refresh Job` | new (Job A entry, loops List entries → `KoiScanTracker action=refresh`) |
+| `KOI Script Runner - Scan Job` | Job B entry (role unchanged) |
+| `KOI Script Runner - Process Config Entry` | `KoiScanTracker action=select` → run → `action=mark` |
+| `KOI Script Runner - Execute Endpoint Script` | takes selected ids, runs, returns dispatched ids |
 | `Koi Scan Tracker` (List) | new external prerequisite (CSV) |
 | `rescan_interval_hours` | new optional List field, default 720 |
 
