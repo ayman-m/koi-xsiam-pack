@@ -110,46 +110,63 @@ const estH = (items, usableIn) => {
   }, 0);
 };
 
-const testSlide = (kicker, title, needs, steps, expects, note) => {
+const testSlide = (kicker, title, content, needs, steps, expects, note) => {
   const s = newSlide();
   heading(s, kicker, title);
 
-  // prerequisites strip — the amber panel every test carries
-  const nh = 0.30 + needs.length * 0.235;
-  card(s, M, 1.44, W, nh, CARD_HI);
-  s.addText("WHAT YOU NEED FIRST", {
-    x: M + 0.3, y: 1.55, w: 3.0, h: 0.22, fontSize: 9.5, bold: true,
-    color: AMBER, fontFace: F, charSpacing: 1.5, margin: 0, valign: "top",
-  });
-  needs.forEach((n, i) => {
-    s.addText("\u2022", { x: M + 3.5, y: 1.55 + i * 0.235, w: 0.16, h: 0.22,
-      fontSize: 11, bold: true, color: AMBER, fontFace: F, margin: 0, valign: "top" });
-    s.addText(n, { x: M + 3.72, y: 1.55 + i * 0.235, w: W - 4.1, h: 0.22,
-      fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  // Two prerequisites, kept apart on purpose. A customer who uploads the pack piece by
+  // piece needs to know which CONTENT ITEMS must be on the tenant, separately from the
+  // TENANT SETUP they configure themselves.
+  const colW = (W - 2.6) / 2;
+  const cx1 = M + 1.9, cx2 = M + 1.9 + colW + 0.5;
+  // wrap-aware: an item that wraps must push the next one down, or they overlap
+  const lay = (items, w) => {
+    let y = 0; const out = [];
+    items.forEach(t => { const n = wrapLines(t, "text", w); out.push([t, y, n]); y += n * 0.205 + 0.04; });
+    return [out, y];
+  };
+  const [cLay, cH] = lay(content, colW);
+  const [nLay, nH] = lay(needs, colW);
+  const nh = 0.34 + Math.max(cH, nH);
+  card(s, M, 1.40, W, nh, CARD_HI);
+
+  s.addText("PACK CONTENT", { x: M + 0.28, y: 1.54, w: 1.6, h: 0.22, fontSize: 9,
+    bold: true, color: CYAN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  cLay.forEach(([t, dy, n]) => {
+    s.addText("\u2022", { x: cx1 - 0.16, y: 1.54 + dy, w: 0.14, h: 0.22, fontSize: 10,
+      bold: true, color: CYAN, fontFace: F, margin: 0, valign: "top" });
+    s.addText(t, { x: cx1, y: 1.54 + dy, w: colW, h: n * 0.21, fontSize: 10,
+      color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
   });
 
-  const top = 1.44 + nh + 0.22;
+  s.addText("TENANT SETUP", { x: cx2 - 1.55, y: 1.54, w: 1.5, h: 0.22, fontSize: 9,
+    bold: true, color: AMBER, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  nLay.forEach(([t, dy, n]) => {
+    s.addText("\u2022", { x: cx2 - 0.16, y: 1.54 + dy, w: 0.14, h: 0.22, fontSize: 10,
+      bold: true, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+    s.addText(t, { x: cx2, y: 1.54 + dy, w: colW, h: n * 0.21, fontSize: 10,
+      color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
+  });
+
+  const top = 1.40 + nh + 0.20;
   const sw = 7.0, ew = W - sw - 0.4, ex = M + sw + 0.4;
-
-  // size the two columns to whichever needs more room, then clamp so the note
-  // (and the slide edge at 7.5in) are never overrun
   const NOTE_H = 0.72;
-  const bottom = note ? 7.5 - 0.22 - NOTE_H - 0.16 : 7.5 - 0.3;
+  const bottom = note ? 7.5 - 0.20 - NOTE_H - 0.14 : 7.5 - 0.28;
   const need = Math.max(estH(steps, sw - 0.68), estH(expects, ew - 0.68)) + 0.86;
-  const ch = Math.max(1.9, Math.min(need, bottom - top));
+  const ch = Math.max(1.7, Math.min(need, bottom - top));
 
   card(s, M, top, sw, ch);
-  s.addText("Steps", { x: M + 0.34, y: top + 0.22, w: 3.0, h: 0.28, fontSize: 12,
+  s.addText("Steps", { x: M + 0.34, y: top + 0.2, w: 3.0, h: 0.28, fontSize: 12,
     bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  rowList(s, steps, M + 0.34, top + 0.62, sw - 0.68, "num");
+  rowList(s, steps, M + 0.34, top + 0.58, sw - 0.68, "num");
 
   card(s, ex, top, ew, ch, CARD_HI);
-  s.addText("What to expect", { x: ex + 0.34, y: top + 0.22, w: 3.4, h: 0.28, fontSize: 12,
+  s.addText("What to expect", { x: ex + 0.34, y: top + 0.2, w: 3.4, h: 0.28, fontSize: 12,
     bold: true, color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  rowList(s, expects, ex + 0.34, top + 0.62, ew - 0.68, "tick");
+  rowList(s, expects, ex + 0.34, top + 0.58, ew - 0.68, "tick");
 
   if (note) {
-    const ny = top + ch + 0.16;
+    const ny = top + ch + 0.14;
     card(s, M, ny, W, NOTE_H, CARD_HI);
     chip(s, M + 0.26, ny + 0.2, "!", AMBER, 0.32);
     s.addText(note, { x: M + 0.76, y: ny + 0.12, w: W - 1.1, h: NOTE_H - 0.24, fontSize: 10,
@@ -323,6 +340,7 @@ const testSlide = (kicker, title, needs, steps, expects, note) => {
 }
 
 testSlide("Test 1", "Connectivity and authorisation",
+  ["KOI integration"],
   ["A KOI API key (KOI console → Settings → API Access)",
    "Permission to add an integration instance in XSIAM"],
   ["Settings → Data Sources → Add an instance → search KOI.",
@@ -338,6 +356,8 @@ testSlide("Test 1", "Connectivity and authorisation",
 ).addNotes("Egress is the single most common deployment problem and it is not obvious from the error.");
 
 testSlide("Test 2", "Event collection",
+  ["KOI integration",
+   "Koi Parsing Rule"],
   ["Test 1 passing", "Fetch events enabled on the KOI instance"],
   ["Edit the KOI instance and tick Fetch events.",
    "Choose which event types to collect, then Save.",
@@ -351,6 +371,8 @@ testSlide("Test 2", "Event collection",
 );
 
 testSlide("Test 3", "Parsing and the data model",
+  ["Koi Parsing Rule",
+   "Koi Modeling Rule"],
   ["Test 2 passing — events present in koi_koi_raw"],
   ["In Query Builder, count real alerts rather than rows:",
    ["dataset = koi_koi_raw", "code"],
@@ -364,6 +386,8 @@ testSlide("Test 3", "Parsing and the data model",
 ).addNotes("This is the number one thing testers misread as a duplication bug.");
 
 testSlide("Test 4", "Dashboard",
+  ["Koi Alerts Dashboard",
+   "Koi Parsing Rule"],
   ["Test 2 passing — events present"],
   ["Dashboards & Reports → open the KOI Alerts Dashboard.",
    "Read the alert totals, risk mix and top items.",
@@ -375,6 +399,10 @@ testSlide("Test 4", "Dashboard",
 );
 
 testSlide("Test 5", "Alert triage",
+  ["KOI IR - Alert Triage",
+   "KOI IR - Extract Alert Context",
+   "KOI IR - Investigate Item / Device",
+   "incident field: KOI Notification ID"],
   ["Test 1 passing — the KOI integration answers",
    "A KOI alert in XSIAM (a correlation rule over koi_koi_raw, or Test 12 for simulated data)"],
   ["Open a KOI alert.",
@@ -389,6 +417,9 @@ testSlide("Test 5", "Alert triage",
 );
 
 testSlide("Test 6", "Item and device investigation",
+  ["KOI IR - Investigate Item",
+   "KOI IR - Investigate Device",
+   "KOI IR - Enrich Item"],
   ["Test 1 passing", "An item id and its marketplace, and a device id — both visible on any KOI alert"],
   ["Automation → Playbooks → KOI IR - Investigate Item → Run.",
    "Supply item_id and marketplace.",
@@ -401,6 +432,8 @@ testSlide("Test 6", "Item and device investigation",
 );
 
 testSlide("Test 7", "Gated response",
+  ["KOI IR - Block and Remediate",
+   "KOI IR - Investigate Item"],
   ["Test 1 passing", "An item id and marketplace", "Permission to approve a task"],
   ["Automation → Playbooks → KOI IR - Block and Remediate → Run.",
    "Supply item_id and marketplace.",
@@ -414,6 +447,7 @@ testSlide("Test 7", "Gated response",
 ).addNotes("The only state-changing action in the pack. Treat this as the production gate.");
 
 testSlide("Test 8", "MCP server hunt",
+  ["KOI Hunting - MCP Server Audit"],
   ["Test 1 passing — the KOI integration answers"],
   ["Automation → Playbooks → KOI Hunting - MCP Server Audit → Run.",
    "Optionally set risk_levels (default high, critical).",
@@ -425,15 +459,18 @@ testSlide("Test 8", "MCP server hunt",
 );
 
 testSlide("Test 9", "Script Runner — refresh the tracker",
-  ["Core REST API integration instance configured  ← the one people miss",
-   "The KOI deployment script — download it from YOUR KOI console, then upload it to Action Center → Scripts Library. This is KOI\'s script, not a Cortex one. It must take no parameters",
-   "An endpoint group — easiest is to tag the agents, then make a dynamic group on that tag",
-   'A JSON List named exactly "Koi Script Runner" — sample content ships with this pack'],
+  ["KOI Script Runner - Refresh Job",
+   "KOI Script Runner - Refresh Entry",
+   "KoiScanTracker  (our automation \u2014 not the KOI script)",
+   "List: Koi Script Runner"],
+  ["Core REST API instance  ← the one people miss",
+   "KOI deployment script in Action Center — download it from YOUR KOI console first (KOI\'s script, not a Cortex one; no parameters)",
+   "An endpoint group — tag the agents, then use a dynamic group",
+   'The Koi Script Runner List created (step 1)'],
   ["Settings → Object Setup → Lists → New List, type JSON, named exactly Koi Script Runner.",
-   "Paste the sample list content that ships with this pack (see the pack README), then edit it.",
-   "Set endpoint_groups to your group name and script.name to the KOI script exactly as it appears in Action Center.",
-   "Add one entry per operating system you deploy to — each entry pairs one script with one OS.",
-   "tracker_list and rescan_interval_hours already carry working defaults — leave them unless you want a different rescan window.",
+   "Open Lists/list-Koi_Script_Runner.json in the pack, copy its data value, and paste it in.",
+   "Edit two things only: endpoint_groups (your group) and script.name (the KOI script exactly as it appears in Action Center). One entry per OS.",
+   "Everything else — tracker_list, rescan_interval_hours, max_endpoints — already has working defaults.",
    "Automation → Jobs → New Job → time-triggered → playbook KOI Script Runner - Refresh Job.",
    "Enable the Job, then use Run now."],
   ["A tracker List appears under Lists, named as in your entry.",
@@ -443,6 +480,10 @@ testSlide("Test 9", "Script Runner — refresh the tracker",
 ).addNotes("Refresh must run before Scan. An empty tracker means Scan has nothing to do.");
 
 testSlide("Test 10", "Script Runner — scan due endpoints",
+  ["KOI Script Runner - Scan Job",
+   "KOI Script Runner - Process Config Entry",
+   "KOI Script Runner - Execute Endpoint Script",
+   "KoiScanTracker  (our automation)"],
   ["Test 9 passing — the tracker List has rows",
    "Connected agents in the group, matching the entry's endpoint_os"],
   ["Automation → Jobs → New Job → time-triggered → playbook KOI Script Runner - Scan Job.",
@@ -457,6 +498,7 @@ testSlide("Test 10", "Script Runner — scan due endpoints",
 );
 
 testSlide("Test 11", "Threat-hunting query library",
+  ["none \u2014 the queries are files you paste"],
   ["Test 2 passing — events present",
    "Nothing else — the cross-dataset hunts read xdr_data, which XSIAM holds natively"],
   ["Open docs/xql in the pack you were sent.",
@@ -470,6 +512,7 @@ testSlide("Test 11", "Threat-hunting query library",
 );
 
 testSlide("Test 12", "Simulated test data",
+  ["KoiSimulateEvents  (test automation)"],
   ["The KoiSimulateEvents automation imported (ships in TestTools)",
    "No KOI API key and no Core REST API needed"],
   ["Open the CLI on any incident.",
