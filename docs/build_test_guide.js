@@ -110,7 +110,7 @@ const estH = (items, usableIn) => {
   }, 0);
 };
 
-const testSlide = (kicker, title, content, needs, steps, expects, note) => {
+const testSlide = (kicker, title, content, needs, steps, expects) => {
   const s = newSlide();
   heading(s, kicker, title);
 
@@ -150,8 +150,7 @@ const testSlide = (kicker, title, content, needs, steps, expects, note) => {
 
   const top = 1.40 + nh + 0.20;
   const sw = 7.0, ew = W - sw - 0.4, ex = M + sw + 0.4;
-  const NOTE_H = 0.72;
-  const bottom = note ? 7.5 - 0.20 - NOTE_H - 0.14 : 7.5 - 0.28;
+  const bottom = 7.5 - 0.30;
   const need = Math.max(estH(steps, sw - 0.68), estH(expects, ew - 0.68)) + 0.86;
   const ch = Math.max(1.7, Math.min(need, bottom - top));
 
@@ -165,13 +164,6 @@ const testSlide = (kicker, title, content, needs, steps, expects, note) => {
     bold: true, color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
   rowList(s, expects, ex + 0.34, top + 0.58, ew - 0.68, "tick");
 
-  if (note) {
-    const ny = top + ch + 0.14;
-    card(s, M, ny, W, NOTE_H, CARD_HI);
-    chip(s, M + 0.26, ny + 0.2, "!", AMBER, 0.32);
-    s.addText(note, { x: M + 0.76, y: ny + 0.12, w: W - 1.1, h: NOTE_H - 0.24, fontSize: 10,
-      color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
-  }
   return s;
 };
 
@@ -225,9 +217,9 @@ const testSlide = (kicker, title, content, needs, steps, expects, note) => {
   const s = newSlide();
   heading(s, "How to use this guide", "Every test is laid out the same way");
   const cols = [
-    ["WHAT YOU NEED FIRST", AMBER, "The tenant setup this test depends on — an integration instance, a List, a script in Action Center. If something here is missing the test cannot pass, and it will look like a product fault."],
-    ["STEPS", ORANGE, "What to click, in order, in the Cortex XSIAM console. Commands to paste are shown in monospace."],
-    ["WHAT TO EXPECT", GREEN, "What a passing test looks like. Where a result commonly looks wrong but is correct, it says so."],
+    ["PACK CONTENT", CYAN, "The content items that must be on the tenant for this test — playbooks, automations, rules, Lists. Useful if you upload the pack piece by piece rather than in one go."],
+    ["TENANT SETUP", AMBER, "What you configure yourself: integration instances, an endpoint group, a script in Action Center, the configuration List."],
+    ["STEPS  +  WHAT TO EXPECT", ORANGE, "What to click, in order, in the Cortex XSIAM console — and what a passing test looks like. Anything to paste is shown in monospace."],
   ];
   const cw = (W - 0.6) / 3;
   cols.forEach(([t, c, d], i) => {
@@ -244,8 +236,8 @@ const testSlide = (kicker, title, content, needs, steps, expects, note) => {
   s.addText("Tests 1 to 4 prove data is arriving and correct. Tests 5 to 8 prove the automation. Tests 9 and 10 prove fleet script execution — the only ones needing the Core REST API integration. Tests 11 and 12 are the query library and the simulator, and run any time. Nothing here needs a Cortex XDR integration: XSIAM is the XDR, and its XQL engine is built in.",
     { x: M + 0.34, y: 4.92, w: W - 0.68, h: 0.8, fontSize: 11, color: BODY, fontFace: F,
       margin: 0, lineSpacing: 14, valign: "top" });
-  s.addText("A test that fails on a missing prerequisite is not a product defect — check the amber panel first.",
-    { x: M, y: 6.15, w: W, h: 0.3, fontSize: 11, italic: true, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Each test lists its own prerequisites — set those up first and the test runs straight through.",
+    { x: M, y: 6.15, w: W, h: 0.3, fontSize: 11, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
 }
 
 /* ============================ 4. Prerequisites ============================ */
@@ -276,7 +268,7 @@ const testSlide = (kicker, title, content, needs, steps, expects, note) => {
   });
   card(s, M, 6.05, W, 0.85, CARD_HI);
   chip(s, M + 0.26, 6.3, "!", AMBER, 0.32);
-  s.addText("The Core REST API instance is the one people miss. The Script Runner uses it to read endpoint groups larger than 100 — without it the tracker stays empty and every scan run does nothing, which looks exactly like a broken playbook.",
+  s.addText("The Core REST API instance is required for tests 9 and 10 only. The Script Runner reads endpoint groups through it, which is how it covers groups larger than 100 endpoints. Everything else in this guide runs without it.",
     { x: M + 0.76, y: 6.18, w: W - 1.1, h: 0.6, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
 }
 
@@ -351,8 +343,7 @@ testSlide("Test 1", "Connectivity and authorisation",
    ["!koi-devices-list limit=5", "code"]],
   ["Test returns Success.",
    "The command returns a table of up to five devices.",
-   "If you set a Tenant Name it will appear on collected events later."],
-  "A 403 here almost always means egress, not a bad key: KOI restricts its sensitive endpoints by source IP. Run the instance on a Cortex engine whose address KOI accepts. A 401 means the key itself."
+   "If you set a Tenant Name it will appear on collected events later."]
 ).addNotes("Egress is the single most common deployment problem and it is not obvious from the error.");
 
 testSlide("Test 2", "Event collection",
@@ -366,8 +357,7 @@ testSlide("Test 2", "Event collection",
    ["dataset = koi_koi_raw", "code"],
    ["| comp count() as rows by source_log_type", "code"]],
   ["Rows appear under Alerts, Audit, or both.",
-   "Counts grow between cycles."],
-  "No rows at all usually means fetch was only just enabled — give it two cycles. Audit missing on its own means the Audit types filter is narrowed; leave it empty for all types."
+   "Counts grow between cycles."]
 );
 
 testSlide("Test 3", "Parsing and the data model",
@@ -381,8 +371,7 @@ testSlide("Test 3", "Parsing and the data model",
    ["| comp count() as rows, count_distinct(nid) as real_alerts", "code"]],
   ["Both numbers return.",
    "rows is larger than real_alerts — often much larger.",
-   "Fields such as item_id, alert_hostname and risk_level are populated and directly queryable."],
-  "rows far exceeding real_alerts is CORRECT. KOI re-sends every still-open alert on each fetch, so a row is a delivery, not an alert. Anything counting alerts must count distinct notification ids — the dashboard already does."
+   "Fields such as item_id, alert_hostname and risk_level are populated and directly queryable."]
 ).addNotes("This is the number one thing testers misread as a duplication bug.");
 
 testSlide("Test 4", "Dashboard",
@@ -394,8 +383,7 @@ testSlide("Test 4", "Dashboard",
    "Come back after another collection cycle and compare."],
   ["Widgets render with data.",
    "Alert counts are far lower than the raw row count from Test 3.",
-   "Counts stay stable as fetches repeat — they do not climb on their own."],
-  "A widget whose number climbs steadily while nothing new happens in KOI would be counting deliveries rather than alerts. Every widget in this pack de-duplicates first."
+   "Counts stay stable as fetches repeat — they do not climb on their own."]
 );
 
 testSlide("Test 5", "Alert triage",
@@ -412,8 +400,7 @@ testSlide("Test 5", "Alert triage",
   ["Context is extracted: item, marketplace, risk, host.",
    "A verdict is posted: Malicious, Suspicious or Benign.",
    "Low risk auto-closes; critical and high escalate.",
-   "Medium and pending stay open for a human."],
-  "Everything coming out Suspicious usually means the alert carried no KOI detail for the playbook to read. Check the correlation rule passes the KOI fields through. Pending means KOI has not finished scoring — it deliberately never auto-closes."
+   "Medium and pending stay open for a human."]
 );
 
 testSlide("Test 6", "Item and device investigation",
@@ -427,8 +414,7 @@ testSlide("Test 6", "Item and device investigation",
   ["An investigation summary with catalog risk and an AI-written summary.",
    "Organisation exposure: installs, endpoints, affected users.",
    "Both governance counts — on blocklist AND on allowlist.",
-   "For the device: everything installed on that host, and which of it is risky."],
-  "Both governance counts matter. Zero blocklist hits alone does not mean nobody has governed the item — it may have been explicitly allowed, and blocking it would override that decision."
+   "For the device: everything installed on that host, and which of it is risky."]
 );
 
 testSlide("Test 7", "Gated response",
@@ -442,8 +428,7 @@ testSlide("Test 7", "Gated response",
   ["The run PARKS on an approval task and waits.",
    "The approval shows the full investigation and both governance counts.",
    "Nothing reaches the blocklist until a human approves.",
-   "An item already blocked short-circuits instead of being added twice."],
-  "This is the test to repeat after any change to the response playbook. If a run ever completes without stopping for approval, stop and investigate before using the pack in production."
+   "An item already blocked short-circuits instead of being added twice."]
 ).addNotes("The only state-changing action in the pack. Treat this as the production gate.");
 
 testSlide("Test 8", "MCP server hunt",
@@ -454,8 +439,7 @@ testSlide("Test 8", "MCP server hunt",
    "Read the War Room table.",
    "To schedule it: Automation → Jobs → New Job, time-triggered."],
   ["A table of MCP servers at or above the risk threshold.",
-   "An empty table is a valid result — it means nothing risky is installed."],
-  "This asks KOI what it has already scored. It finds risky agentic-AI assets without waiting for an alert about them."
+   "An empty table is a valid result — it means nothing risky is installed."]
 );
 
 testSlide("Test 9", "Script Runner — refresh the tracker",
@@ -475,8 +459,7 @@ testSlide("Test 9", "Script Runner — refresh the tracker",
    "Enable the Job, then use Run now."],
   ["A tracker List appears under Lists, named as in your entry.",
    "It fills with one row per endpoint: an id and a last-scan value.",
-   "Re-running adds new endpoints without disturbing existing rows."],
-  "Without a Core REST API instance this test cannot pass — the refresh reads endpoint groups through it. The tracker simply stays empty, which looks like a broken playbook."
+   "Re-running adds new endpoints without disturbing existing rows."]
 ).addNotes("Refresh must run before Scan. An empty tracker means Scan has nothing to do.");
 
 testSlide("Test 10", "Script Runner — scan due endpoints",
@@ -493,8 +476,8 @@ testSlide("Test 10", "Script Runner — scan due endpoints",
   ["The script is dispatched to due, connected endpoints.",
    "Those endpoints get a last-scan timestamp in the tracker.",
    "Offline, wrong-OS and unknown endpoints stay due and retry later.",
-   "The second run does nothing — everything is inside the rescan interval."],
-  "SKIPPED means nothing is due right now and sends no email, by design. STILL RUNNING means the script was dispatched and Action Center is finishing on its own. Neither is a failure."
+   "The second run does nothing — everything is inside the rescan interval.",
+   "A SKIPPED entry means nothing was due; a STILL RUNNING entry means Action Center is finishing on its own. Both are normal and send no email."]
 );
 
 testSlide("Test 11", "Threat-hunting query library",
@@ -507,8 +490,7 @@ testSlide("Test 11", "Threat-hunting query library",
    "Try a detection too, for example A1."],
   ["Each query runs and returns rows, or a clean empty result.",
    "Hunts surface findings KOI scored that nobody actioned.",
-   "26 hunts and 46 detections are included."],
-  "These read raw event fields, so they keep working regardless of the modeling rule. An empty result is a valid answer, not a failure."
+   "26 hunts and 46 detections are included."]
 );
 
 testSlide("Test 12", "Simulated test data",
@@ -522,35 +504,8 @@ testSlide("Test 12", "Simulated test data",
    "Query koisim_koisim_raw to check them."],
   ["380 events land in koisim_koisim_raw.",
    "40 distinct alerts delivered 8 times each, as real KOI does.",
-   "The counts you measure match the summary exactly."],
-  "It writes to its own dataset, never koi_koi_raw, so it cannot disturb real data. Use it to see the pack working before real KOI activity exists."
+   "The counts you measure match the summary exactly."]
 ).addNotes("Fastest possible demo: no KOI key, no waiting, and the expected numbers are printed up front.");
-
-/* ============================ Troubleshooting ============================ */
-{
-  const s = newSlide();
-  heading(s, "If something fails", "Check the prerequisite before the product");
-  const rows = [
-    ["403 on KOI commands", "Source IP not accepted by KOI", "Run the instance on a Cortex engine KOI accepts"],
-    ["401 on KOI commands", "The API key itself", "Re-create the key with the xt-Administrator role"],
-    ["Engine is not connected", "The Cortex engine is offline", "Every koi- command fails before reaching KOI. Restart the engine"],
-    ["No events after enabling fetch", "Only one cycle has run", "Wait two cycles, then re-check Test 2"],
-    ["Everything triages as Suspicious", "The alert carried no KOI detail", "Check the correlation rule passes KOI fields through"],
-    ["Tracker List stays empty", "No Core REST API instance", "Configure it — Test 9 cannot pass without it"],
-    ["Scan run does nothing", "Refresh has not run yet", "Run the Refresh job first; an empty tracker means nothing is due"],
-    ["A Job never fires", "It was created disabled", "Enable it and confirm a next-run time is shown"],
-  ];
-  const y0 = 1.5, rh = 0.5;
-  rows.forEach(([sym, cause, fix], i) => {
-    const y = y0 + i * (rh + 0.11);
-    card(s, M, y, W, rh);
-    s.addText(sym, { x: M + 0.3, y: y + 0.14, w: 3.3, h: 0.26, fontSize: 11, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(cause, { x: M + 3.8, y: y + 0.15, w: 3.4, h: 0.26, fontSize: 10, color: AMBER, fontFace: F, margin: 0, valign: "top" });
-    s.addText(fix, { x: M + 7.4, y: y + 0.15, w: W - 7.7, h: 0.26, fontSize: 10, color: BODY, fontFace: F, margin: 0, valign: "top" });
-  });
-  s.addText("Six of these eight are tenant setup, not the pack. Check the amber panel on the test before raising a defect.",
-    { x: M, y: y0 + 8 * (rh + 0.11) + 0.1, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-}
 
 /* ============================ Sign-off ============================ */
 {
