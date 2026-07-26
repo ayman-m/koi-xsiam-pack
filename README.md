@@ -222,6 +222,7 @@ The full customer guide — install, configure, all commands, capabilities, the 
 | **Troubleshooting guide** | Diagnostic channels, KOI's on-disk file map, how each data point is collected, and symptom/cause/fix | [Word](docs/KOI_Troubleshooting_Guide_v1.0.docx) · [PDF](docs/KOI_Troubleshooting_Guide_v1.0.pdf) |
 | **XQL query library** | 72 queries — 26 threat hunts + 46 detections across KOI and Cortex XDR data, with an operator guide | [Library](docs/xql/README.md) · [Hunts](docs/HUNTING_QUERIES.md) · [Detections](docs/DETECTION_QUERIES.md) · [Operator guide](docs/QUERY_LIBRARY.md) |
 | **Test guide by use case** | Seven use cases with steps, expected results and why each matters — plus how to generate test data on demand | [Markdown](docs/TEST_GUIDE_BY_USE_CASE.md) |
+| **Deployment comparison** | Custom integration + this pack vs the Marketplace integration + extension content — capabilities, trade-offs and how to choose | [Word](docs/KOI_Deployment_Comparison_v1.0.docx) · [PDF](docs/KOI_Deployment_Comparison_v1.0.pdf) |
 
 The **test guide** is the fastest way to confirm a deployment: it walks connectivity,
 event collection, the command surface, the dashboard, triage, both investigations,
