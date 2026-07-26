@@ -84,6 +84,32 @@ PYEOF
 # ---- the prepared single-file automation must match its source ----
 python3 "$CUS/TestTools/prepare_koiscantracker.py" --check || drift=1
 
+# ---- every path a guide prints must exist in that guide's own repo ----
+# The two packs sit at different depths: the custom pack IS its repo root, while the
+# marketplace pack lives under Packs/KoiContentExtension/ as a contribution has to. A
+# path copied between the two decks therefore resolves in one repo and not the other,
+# which is invisible until a reader goes looking for the file on GitHub.
+python3 - "$CUS" "$MP_ROOT" <<'PYEOF'
+import os, re, sys
+bad = 0
+for root, deck in ((sys.argv[1], "custom"), (sys.argv[2], "marketplace")):
+    js = os.path.join(root, "docs", "build_test_guide.js")
+    if not os.path.exists(js):
+        continue
+    text = open(js).read()
+    paths = set(re.findall(
+        r'\b((?:Packs/[A-Za-z0-9_]+/)?(?:dist|Lists|Scripts|TestTools|Playbooks)/[A-Za-z0-9_\-./]+\.(?:yml|json|md|py))',
+        text))
+    missing = sorted(p for p in paths if not os.path.exists(os.path.join(root, p)))
+    for p in missing:
+        print(f"  DRIFT    {deck} guide prints a path that does not exist there: {p}")
+        bad = 1
+    if not missing:
+        print(f"  ok       {deck} guide: all {len(paths)} printed paths resolve")
+sys.exit(bad)
+PYEOF
+[ $? -ne 0 ] && drift=1
+
 echo
 if [ "$drift" -eq 0 ]; then
   echo "In sync — the two copies differ only by playbook name."
