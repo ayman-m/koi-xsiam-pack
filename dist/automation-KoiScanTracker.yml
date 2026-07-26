@@ -1,0 +1,69 @@
+# PREPARED FILE — do not edit. Generated from Scripts/KoiScanTracker/
+# by TestTools/prepare_koiscantracker.py. Edit the .py/.yml source instead.
+commonfields:
+  id: KoiScanTracker
+  version: -1
+name: KoiScanTracker
+script: "\"\"\"KoiScanTracker — endpoint scan-coverage ledger for the Koi Script Runner.\n\nOwns a compact CSV List (endpoint_id,last_scan-epoch) and all the date logic, so the\nScript Runner playbooks stay thin. Action-dispatched:\n\n  action=refresh  walk the group by first_seen (100/call) and append-only upsert ids\n  action=select   return up to `max` due, currently-connected endpoint ids\n  action=mark     stamp last_scan=now for the given ids (mark-on-dispatch)\n\nThe 100-endpoint cap of core-get-endpoints only bites in `refresh`, handled by a\nfirst_seen cursor loop. `select` reads candidates from the tracker (no re-enumeration)\nand only does a targeted connected-check on the <=100 it returns.\n\"\"\"\nimport io\nimport csv\nimport time\nimport json\n# Self-contained: relies only on the `demisto` global the platform injects at runtime.\n# No demistomock / CommonServerPython import, so it runs from a raw pack upload without\n# the demisto-sdk prepare-content (unify) step that would otherwise inline those libs.\n\ndef _is_error(res):\n    return isinstance(res, list) and any(isinstance(e, dict) and e.get(\"Type\") == 4 for e in res)\n\ndef _error_text(res):\n    return \"; \".join(str(e.get(\"Contents\")) for e in res if isinstance(e, dict) and e.get(\"Type\") == 4)\n\ndef _arg_list(v):\n    if not v:\n        return []\n    if isinstance(v, list):\n        return v\n    return [x.strip() for x in str(v).split(\",\") if x.strip()]\n\ndef _md_result(readable, outputs_key, outputs):\n    return {\"Type\": 1, \"ContentsFormat\": \"json\", \"Contents\": outputs,\n            \"HumanReadable\": readable, \"EntryContext\": {outputs_key: outputs}}\n\nHEADER = [\"endpoint_id\", \"last_scan\"]\n\n# ----------------------------- pure logic (unit-tested) -----------------------------\n\ndef parse_tracker(text):\n    rows = {}\n    if not text or not text.strip():\n        return rows\n    for r in csv.reader(io.StringIO(text.strip())):\n        if not r or not r[0].strip() or r[0].strip() == \"endpoint_id\":\n            continue\n        eid = r[0].strip()\n        ls = 0\n        if len(r) > 1 and r[1].strip():\n            try:\n                ls = int(float(r[1].strip()))\n            except ValueError:\n                ls = 0\n        rows[eid] = ls\n    return rows\n\n\ndef emit_tracker(rows):\n    out = io.StringIO()\n    w = csv.writer(out, lineterminator=\"\\n\")\n    w.writerow(HEADER)\n    for eid in sorted(rows):\n        w.writerow([eid, rows[eid]])\n    return out.getvalue()\n\n\ndef upsert_members(rows, endpoint_ids):\n    added = 0\n    for eid in endpoint_ids:\n        if eid and eid not in rows:\n            rows[eid] = 0\n            added += 1\n    return rows, added\n\n\ndef compute_due(rows, candidate_ids, interval_hours, now_epoch, max_n):\n    thresh = now_epoch - int(interval_hours) * 3600\n    due = []\n    for eid in candidate_ids:\n        ls = rows.get(eid)\n        if ls is None or ls == 0 or ls <= thresh:\n            due.append((ls or 0, eid))\n    due.sort()\n    return [eid for _, eid in due[:max_n]]\n\n\ndef mark_scanned(rows, endpoint_ids, now_epoch):\n    for eid in endpoint_ids:\n        if eid:\n            rows[eid] = now_epoch\n    return rows\n\n\n# ----------------------------- demisto glue -----------------------------\n\ndef get_list(name):\n    res = demisto.executeCommand(\"getList\", {\"listName\": name})\n    if not res or _is_error(res):\n        return \"\"\n    contents = res[0].get(\"Contents\")\n    if not isinstance(contents, str) or contents.startswith(\"Item not found\"):\n        return \"\"\n    return contents\n\n\ndef set_list(name, text):\n    res = demisto.executeCommand(\"setList\", {\"listName\": name, \"listData\": text})\n    if _is_error(res):\n        err = _error_text(res)\n        if \"not found\" in err.lower():                 # setList can't create — create it\n            c = demisto.executeCommand(\"createList\", {\"listName\": name, \"listData\": text})\n            if _is_error(c):\n                raise Exception(\"createList failed: \" + _error_text(c))\n        else:\n            raise Exception(\"setList failed: \" + err)\n\n\ndef _eid(ep):\n    return ep.get(\"endpoint_id\") or ep.get(\"id\") or ep.get(\"agent_id\")\n\n\ndef get_endpoints_cmd(args):\n    \"\"\"Targeted lookup via the core-get-endpoints COMMAND (<=100 ids). Used by `select`\n    for the connected-check — NOT for enumeration (the command cannot page past 100).\"\"\"\n    res = demisto.executeCommand(\"core-get-endpoints\", args)\n    if _is_error(res):\n        raise Exception(\"core-get-endpoints failed: \" + _error_text(res))\n    out = []\n    for entry in res:\n        c = entry.get(\"Contents\")\n        if isinstance(c, dict):\n            c = c.get(\"endpoints\") or c.get(\"data\") or [c]\n        if isinstance(c, list):\n            out.extend(c)\n    return out\n\n\ndef enumerate_group(group_name, os_platform):\n    \"\"\"Full roster via the raw endpoints API, paged search_from/search_to in 100-row\n    windows (the only mechanism that pages past 100 — the command caps at 100). Bridged\n    through the Core REST API integration's core-api-post, which reaches /public_api.\"\"\"\n    filters = []\n    if group_name:\n        filters.append({\"field\": \"group_name\", \"operator\": \"in\", \"value\": [group_name]})\n    if os_platform:\n        filters.append({\"field\": \"platform\", \"operator\": \"in\", \"value\": [os_platform]})\n\n    ids, frm, total = [], 0, None\n    while frm < 200000:  # hard backstop\n        rd = {\"search_from\": frm, \"search_to\": frm + 100,\n              \"sort\": {\"field\": \"first_seen\", \"keyword\": \"asc\"}}\n        if filters:\n            rd[\"filters\"] = filters\n        res = demisto.executeCommand(\"core-api-post\", {\n            \"uri\": \"/public_api/v1/endpoints/get_endpoint/\",\n            \"body\": json.dumps({\"request_data\": rd})})\n        if _is_error(res):\n            raise Exception(\"core-api-post failed: \" + _error_text(res))\n        contents = res[0].get(\"Contents\") if res else {}\n        if isinstance(contents, str):\n            try:\n                contents = json.loads(contents)\n            except Exception:\n                contents = {}\n        reply = ((contents.get(\"response\") or {}).get(\"reply\")) if isinstance(contents, dict) else {}\n        reply = reply or {}\n        batch = reply.get(\"endpoints\") or []\n        total = reply.get(\"total_count\", total)\n        ids.extend(_eid(e) for e in batch if _eid(e))\n        if len(batch) < 100:\n            break\n        frm += 100\n        if total is not None and frm >= total:\n            break\n    return ids\n\n\n# ----------------------------- actions -----------------------------\n\ndef action_refresh(a):\n    list_name = a[\"tracker_list\"]\n    os_platform = str(a[\"endpoint_os\"]).lower() if a.get(\"endpoint_os\") else \"\"\n    rows = parse_tracker(get_list(list_name))\n    collected = enumerate_group(a.get(\"group_name\"), os_platform)\n    rows, added = upsert_members(rows, collected)\n    set_list(list_name, emit_tracker(rows))\n    return _md_result(\n        f\"Refreshed **{list_name}**: {len(collected)} group endpoints seen; \"\n        f\"{added} new added; {len(rows)} total tracked.\",\n        \"KoiScanTracker.Refresh\",\n        {\"tracker_list\": list_name, \"seen\": len(collected), \"added\": added, \"total\": len(rows)})\n\n\ndef action_select(a):\n    list_name = a[\"tracker_list\"]\n    interval_hours = int(a.get(\"rescan_interval_hours\") or 720)\n    max_n = int(a.get(\"max\") or 100)\n    now = int(time.time())\n    rows = parse_tracker(get_list(list_name))\n\n    due = compute_due(rows, list(rows.keys()), interval_hours, now, max_n)\n    connected = []\n    if due:\n        q = {\"endpoint_id_list\": \",\".join(due), \"status\": \"connected\", \"isolate\": \"unisolated\"}\n        if a.get(\"endpoint_os\"):                       # defensive: never let a wrong-OS row through\n            q[\"platform\"] = str(a[\"endpoint_os\"]).lower()\n        present = {_eid(e) for e in get_endpoints_cmd(q)}\n        connected = [eid for eid in due if eid in present]\n\n    return _md_result(\n        f\"**{list_name}**: {len(rows)} tracked, {len(due)} due, \"\n        f\"{len(connected)} due & connected (interval {interval_hours}h).\",\n        \"KoiScanTracker.Select\",\n        {\"tracker_list\": list_name, \"due_connected\": connected,\n         \"due_count\": len(due), \"connected_count\": len(connected)})\n\n\ndef action_mark(a):\n    list_name = a[\"tracker_list\"]\n    ids = _arg_list(a.get(\"endpoint_ids\"))\n    now = int(time.time())\n    rows = parse_tracker(get_list(list_name))\n    mark_scanned(rows, ids, now)\n    set_list(list_name, emit_tracker(rows))\n    return _md_result(\n        f\"Marked {len(ids)} endpoint(s) scanned at {now} in **{list_name}**.\",\n        \"KoiScanTracker.Mark\",\n        {\"tracker_list\": list_name, \"marked\": len(ids), \"at\": now})\n\n\ndef main():\n    a = demisto.args()\n    action = a.get(\"action\")\n    try:\n        if action == \"refresh\":\n            demisto.results(action_refresh(a))\n        elif action == \"select\":\n            demisto.results(action_select(a))\n        elif action == \"mark\":\n            demisto.results(action_mark(a))\n        else:\n            raise ValueError(\"unknown action: %r (expected refresh|select|mark)\" % action)\n    except Exception as e:  # noqa\n        demisto.results({\"Type\": 4, \"ContentsFormat\": \"text\",\n                         \"Contents\": \"KoiScanTracker [%s] failed: %s\" % (action, e)})\n\n\nmain()\n"
+type: python
+subtype: python3
+tags:
+- Utility
+comment: 'Endpoint scan-coverage ledger for the Koi Script Runner. Owns a compact CSV List
+
+  (endpoint_id,last_scan-epoch) so the playbooks stay thin. Action-dispatched:
+
+  refresh (walk the group by first_seen and upsert ids), select (return up to `max`
+
+  due, currently-connected ids), mark (stamp last_scan=now — mark-on-dispatch).'
+enabled: true
+args:
+- name: action
+  required: true
+  auto: PREDEFINED
+  predefined:
+  - refresh
+  - select
+  - mark
+  description: refresh = upsert group membership; select = return due & connected ids; mark = stamp last_scan=now.
+- name: tracker_list
+  required: true
+  description: Name of the CSV List used as the tracker for this scope (e.g. "Koi Scan Tracker - Windows").
+- name: group_name
+  description: (refresh) Endpoint group to walk. Optional; omit to walk all endpoints of the OS.
+- name: endpoint_os
+  description: (refresh, select) OS platform. On refresh it filters enumeration; on select it filters the connected-check so a wrong-OS row can never be dispatched to.
+- name: rescan_interval_hours
+  description: (select) Hours after which a scanned endpoint becomes due again. Default 720 (30 days).
+  defaultValue: '720'
+- name: max
+  description: (select) Maximum endpoints to return. Default 100 — the core-get-endpoints cap.
+  defaultValue: '100'
+- name: endpoint_ids
+  description: (mark) Comma-separated endpoint ids to stamp as scanned now.
+outputs:
+- contextPath: KoiScanTracker.Refresh.seen
+  description: Group endpoints seen during the walk.
+  type: Number
+- contextPath: KoiScanTracker.Refresh.added
+  description: New endpoints appended to the tracker.
+  type: Number
+- contextPath: KoiScanTracker.Refresh.total
+  description: Total endpoints now tracked.
+  type: Number
+- contextPath: KoiScanTracker.Select.due_connected
+  description: Due endpoints that are currently connected — ready to scan.
+  type: Unknown
+- contextPath: KoiScanTracker.Select.due_count
+  description: Total due endpoints (before the connected filter).
+  type: Number
+- contextPath: KoiScanTracker.Select.connected_count
+  description: Due endpoints that are currently connected.
+  type: Number
+- contextPath: KoiScanTracker.Mark.marked
+  description: Number of endpoints stamped as scanned.
+  type: Number
+scripttarget: 0
+runonce: false
+dockerimage: demisto/python3:3.11.10.116949
+fromversion: 8.2.0

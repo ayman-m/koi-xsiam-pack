@@ -81,6 +81,9 @@ sys.exit(bad)
 PYEOF
 [ $? -ne 0 ] && drift=1
 
+# ---- the prepared single-file automation must match its source ----
+python3 "$CUS/TestTools/prepare_koiscantracker.py" --check || drift=1
+
 echo
 if [ "$drift" -eq 0 ]; then
   echo "In sync — the two copies differ only by playbook name."
