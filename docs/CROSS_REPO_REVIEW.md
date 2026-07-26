@@ -148,8 +148,11 @@ Fix: count_distinct(koi_notification_id) — requires 1.2 first.
     `all_items` is accepted but returns 0 -> never use it; omitting view returns everything.
 2.10 Our MCP Server Audit description claims it "(optionally) hands it to KOI - Block &
     Remediate" — there is no such task. It also hardcodes instance_name: KOI_PAET.
-2.11 pack_metadata.json declares NO dependencies at all. Add CortexXDR (mandatory:false),
-    Core, CommonScripts, FiltersAndTransformers.
+2.11 pack_metadata.json declares NO dependencies at all. Add Core, CommonScripts,
+    FiltersAndTransformers. NOT CortexXDR — verified on the tenant 2026-07-26: XSIAM
+    auto-provisions the XQL Query Engine (its instance carries the platform's
+    _default_instance suffix) and that brand serves xdr-xql-generic-query. XSIAM is the
+    XDR; requiring a separate Cortex XDR integration would be wrong.
 2.12 Latent scale bug (ours alone, they can't help): Investigate Item tasks '8'/'9' fetch
     limit:'100' org-wide then filter client-side -> past 100 rows counts silently report 0
     instead of "unknown".

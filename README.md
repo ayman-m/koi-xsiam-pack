@@ -72,7 +72,7 @@ Required per entry now include **`target.tracker_list`** (the CSV List this scop
 
 - **The Core REST API integration** — configured and enabled. `KoiScanTracker` refresh calls `core-api-post` to page the group past the 100-endpoint cap; without it, Refresh cannot build the tracker.
 - **The KOI script package(s)** — upload to *Action Center → Scripts Library* yourself; the Library name must equal `script.name` character-for-character (or pin `script.uuid` to be rename-proof). The script must be **parameterless** — the run task passes no `parameters_values`.
-- **The endpoint group(s)** named in `target.endpoint_groups` — must exist and contain the intended agents (connected, unisolated, OS matching `endpoint_os`)
+- **The endpoint group(s)** named in `target.endpoint_groups` — must exist and contain the intended agents (connected, unisolated, OS matching `endpoint_os`). The simplest way to build one is to **tag** the agents and create a **dynamic group** on that tag, so membership maintains itself as endpoints come and go
 - **The List** — named exactly `Koi Script Runner`
 - **A mail-sender instance** (only if notifications are configured) — enabled, supporting `send-mail`; if `sendmail_instance.name` is set, an instance with that exact name
 

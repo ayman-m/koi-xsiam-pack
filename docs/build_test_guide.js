@@ -224,7 +224,7 @@ const testSlide = (kicker, title, needs, steps, expects, note) => {
   card(s, M, 4.35, W, 1.5, CARD_HI);
   s.addText("Run them in order the first time", { x: M + 0.34, y: 4.55, w: 5.0, h: 0.3,
     fontSize: 13, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-  s.addText("Tests 1 to 4 prove data is arriving and correct. Tests 5 to 8 prove the automation. Tests 9 and 10 prove fleet script execution — they are the only ones that need the Core REST API integration. Tests 11 and 12 are the query library and the simulator, and can be run at any time.",
+  s.addText("Tests 1 to 4 prove data is arriving and correct. Tests 5 to 8 prove the automation. Tests 9 and 10 prove fleet script execution — the only ones needing the Core REST API integration. Tests 11 and 12 are the query library and the simulator, and run any time. Nothing here needs a Cortex XDR integration: XSIAM is the XDR, and its XQL engine is built in.",
     { x: M + 0.34, y: 4.92, w: W - 0.68, h: 0.8, fontSize: 11, color: BODY, fontFace: F,
       margin: 0, lineSpacing: 14, valign: "top" });
   s.addText("A test that fails on a missing prerequisite is not a product defect — check the amber panel first.",
@@ -245,7 +245,7 @@ const testSlide = (kicker, title, needs, steps, expects, note) => {
     ["An egress IP KOI accepts", "Run the instance on a Cortex engine if needed", "Tests 1-8, 11", AMBER],
     ["Core REST API instance", "Settings → Data Sources → Add → Core REST API", "Tests 9-10 only", AMBER],
     ["KOI script in Action Center", "Action Center → Scripts Library → upload", "Tests 9-10", CYAN],
-    ["An endpoint group", "Endpoints → Endpoint Groups", "Tests 9-10", CYAN],
+    ["An endpoint group", "Tag the agents, then Endpoints → Endpoint Groups → dynamic", "Tests 9-10", CYAN],
     ["\"Koi Script Runner\" JSON List", "Settings → Object Setup → Lists", "Tests 9-10", CYAN],
     ["Mail sender instance (optional)", "Settings → Data Sources", "Tests 9-10 notifications", MUTED],
   ];
@@ -427,7 +427,7 @@ testSlide("Test 8", "MCP server hunt",
 testSlide("Test 9", "Script Runner — refresh the tracker",
   ["Core REST API integration instance configured  ← the one people miss",
    "A KOI script uploaded in Action Center → Scripts Library (it must take no parameters)",
-   "An endpoint group containing your agents",
+   "An endpoint group — easiest is to tag the agents, then make a dynamic group on that tag",
    'A JSON List named exactly "Koi Script Runner"'],
   ["Settings → Object Setup → Lists → New List, type JSON, named Koi Script Runner.",
    "Give each entry a script name, endpoint_os, endpoint group, tracker_list and rescan_interval_hours.",
@@ -455,7 +455,7 @@ testSlide("Test 10", "Script Runner — scan due endpoints",
 
 testSlide("Test 11", "Threat-hunting query library",
   ["Test 2 passing — events present",
-   "Cortex XDR data for the cross-dataset hunts (optional)"],
+   "Nothing else — the cross-dataset hunts read xdr_data, which XSIAM holds natively"],
   ["Open docs/xql in the pack you were sent.",
    "Read QUERY_LIBRARY.md first — it explains the rules.",
    "Paste a hunt into Query Builder, starting with H2.1.",
