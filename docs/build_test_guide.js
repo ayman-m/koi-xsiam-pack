@@ -97,44 +97,63 @@ const rowList = (s, items, x, y, w, marker) => {
   return cy - y;                                            // consumed height
 };
 
-/* Estimate rendered height so each card hugs its content — step counts vary from
-   four to eight across the tests, so one fixed height leaves the short ones hollow. */
-const estH = (items, usableIn) =>
-  items.reduce((h, it) => {
+/* ---------- testSlide: "What you need" + Steps + Expect ------------------- */
+/* Every test states its own prerequisites, because the most common way a test
+   "fails" is a missing tenant-side dependency rather than a defect.          */
+/* Estimated rendered height of a rowList, so cards can be sized to their content
+   instead of guessed — the same calibration rowList itself uses. */
+const estH = (items, usableIn) => {
+  const tw = usableIn - GUTTER;
+  return items.reduce((h, it) => {
     const [txt, kind] = Array.isArray(it) ? it : [it, "text"];
-    return h + wrapLines(txt, kind, usableIn - GUTTER) * 0.205 + 0.155;
+    return h + wrapLines(txt, kind, tw) * 0.205 + 0.155;
   }, 0);
+};
 
-/* one test slide: numbered steps on the left, expected results on the right */
-const testSlide = (kicker, title, steps, expects, note) => {
+const testSlide = (kicker, title, needs, steps, expects, note) => {
   const s = newSlide();
   heading(s, kicker, title);
+
+  // prerequisites strip — the amber panel every test carries
+  const nh = 0.30 + needs.length * 0.235;
+  card(s, M, 1.44, W, nh, CARD_HI);
+  s.addText("WHAT YOU NEED FIRST", {
+    x: M + 0.3, y: 1.55, w: 3.0, h: 0.22, fontSize: 9.5, bold: true,
+    color: AMBER, fontFace: F, charSpacing: 1.5, margin: 0, valign: "top",
+  });
+  needs.forEach((n, i) => {
+    s.addText("\u2022", { x: M + 3.5, y: 1.55 + i * 0.235, w: 0.16, h: 0.22,
+      fontSize: 11, bold: true, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+    s.addText(n, { x: M + 3.72, y: 1.55 + i * 0.235, w: W - 4.1, h: 0.22,
+      fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  });
+
+  const top = 1.44 + nh + 0.22;
   const sw = 7.0, ew = W - sw - 0.4, ex = M + sw + 0.4;
-  const need = Math.max(estH(steps, sw - 0.68), estH(expects, ew - 0.68));
-  const ch = Math.min(note ? 4.30 : 5.05, Math.max(2.35, need + 0.96));
 
-  card(s, M, 1.58, sw, ch);
-  s.addText("Steps", {
-    x: M + 0.34, y: 1.82, w: 3.0, h: 0.3, fontSize: 12.5, bold: true,
-    color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top",
-  });
-  rowList(s, steps, M + 0.34, 2.24, sw - 0.68, "num");
+  // size the two columns to whichever needs more room, then clamp so the note
+  // (and the slide edge at 7.5in) are never overrun
+  const NOTE_H = 0.72;
+  const bottom = note ? 7.5 - 0.22 - NOTE_H - 0.16 : 7.5 - 0.3;
+  const need = Math.max(estH(steps, sw - 0.68), estH(expects, ew - 0.68)) + 0.86;
+  const ch = Math.max(1.9, Math.min(need, bottom - top));
 
-  card(s, ex, 1.58, ew, ch, CARD_HI);
-  s.addText("What to expect", {
-    x: ex + 0.34, y: 1.82, w: 3.4, h: 0.3, fontSize: 12.5, bold: true,
-    color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top",
-  });
-  rowList(s, expects, ex + 0.34, 2.24, ew - 0.68, "tick");
+  card(s, M, top, sw, ch);
+  s.addText("Steps", { x: M + 0.34, y: top + 0.22, w: 3.0, h: 0.28, fontSize: 12,
+    bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  rowList(s, steps, M + 0.34, top + 0.62, sw - 0.68, "num");
+
+  card(s, ex, top, ew, ch, CARD_HI);
+  s.addText("What to expect", { x: ex + 0.34, y: top + 0.22, w: 3.4, h: 0.28, fontSize: 12,
+    bold: true, color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  rowList(s, expects, ex + 0.34, top + 0.62, ew - 0.68, "tick");
 
   if (note) {
-    const ny = 1.58 + ch + 0.24;                 // follows the cards instead of a fixed y
-    card(s, M, ny, W, 0.92, CARD_HI);
-    chip(s, M + 0.28, ny + 0.27, "!", AMBER, 0.34);
-    s.addText(note, {
-      x: M + 0.82, y: ny + 0.19, w: W - 1.2, h: 0.6, fontSize: 10.5,
-      color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
-    });
+    const ny = top + ch + 0.16;
+    card(s, M, ny, W, NOTE_H, CARD_HI);
+    chip(s, M + 0.26, ny + 0.2, "!", AMBER, 0.32);
+    s.addText(note, { x: M + 0.76, y: ny + 0.12, w: W - 1.1, h: NOTE_H - 0.24, fontSize: 10,
+      color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
   }
   return s;
 };
@@ -142,563 +161,384 @@ const testSlide = (kicker, title, steps, expects, note) => {
 /* ============================ 1. Title ============================ */
 {
   const s = newSlide();
-  s.addShape(pres.ShapeType.ellipse, {
-    x: 9.3, y: -1.6, w: 6.0, h: 6.0,
-    fill: { color: GREEN, transparency: 93 }, line: { color: GREEN, width: 1 },
-  });
-  s.addShape(pres.ShapeType.ellipse, {
-    x: 10.8, y: 3.5, w: 3.4, h: 3.4,
-    fill: { color: ORANGE, transparency: 93 }, line: { color: ORANGE, width: 1 },
-  });
-  s.addText("KOI CONTENT PACK  ·  ACCEPTANCE TESTING", {
-    x: M, y: 1.75, w: W, h: 0.3, fontSize: 12, bold: true,
-    color: ORANGE, fontFace: F, charSpacing: 3, margin: 0, valign: "top",
-  });
-  s.addText("Test Guide", {
-    x: M, y: 2.05, w: 8.6, h: 1.35, fontSize: 66, bold: true,
-    color: WHITE, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addText("Nine tests that prove every part of the pack works on your tenant — and what a pass looks like for each.", {
-    x: M, y: 3.62, w: 8.4, h: 0.9, fontSize: 17, color: BODY, fontFace: F,
-    margin: 0, lineSpacing: 24, valign: "top",
-  });
-  const stats = [["9", "tests"], ["~45", "minutes"], ["1", "tenant"], ["0", "risk to prod"]];
-  stats.forEach(([n, l], i) => {
-    const x = M + i * 2.05;
-    s.addText(n, { x, y: 4.95, w: 1.9, h: 0.6, fontSize: 34, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
-    s.addText(l, { x, y: 5.55, w: 1.9, h: 0.3, fontSize: 11, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-  });
-  s.addNotes("Work top to bottom. Tests 1-4 prove the plumbing, 5-8 prove the automation, 9 proves fleet execution. Test 7 is the safety gate and must pass before production use.");
+  s.addShape(pres.ShapeType.ellipse, { x: 9.6, y: -2.6, w: 6.4, h: 6.4,
+    fill: { color: ORANGE, transparency: 90 }, line: { color: ORANGE, width: 1 } });
+  s.addText("KOI CONTENT PACK", { x: M, y: 2.5, w: W, h: 0.3, fontSize: 12, bold: true,
+    color: ORANGE, fontFace: F, charSpacing: 3, margin: 0, valign: "top" });
+  s.addText("Test Guide", { x: M, y: 2.9, w: W, h: 1.0, fontSize: 48, bold: true,
+    color: WHITE, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Twelve tests that prove every part of the pack — with the tenant setup each one needs",
+    { x: M, y: 3.95, w: 9.6, h: 0.4, fontSize: 15, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  s.addText("For anyone comfortable in the Cortex XSIAM console. No content development required.",
+    { x: M, y: 4.45, w: 9.6, h: 0.4, fontSize: 12, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Pack 1.5.0   ·   July 2026", { x: M, y: 6.6, w: W, h: 0.3, fontSize: 11,
+    color: MUTED, fontFace: F, margin: 0, valign: "top" });
+  s.addNotes("Written for an operator, not a content developer. Every test names the tenant-side setup it needs before it can pass.");
 }
 
-/* ============================ 2. Requirements ============================ */
+/* ============================ 2. What ships ============================ */
 {
   const s = newSlide();
-  heading(s, "Requirements", "What you need, by what you are deploying");
-  s.addText("The two deployments have very different prerequisites. Pick your column before you start.", {
-    x: M, y: 1.42, w: 9.8, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
-  });
-  const cols = [
-    ["Full pack", ORANGE, "Collection, triage, investigation and response", [
-      "Cortex XSIAM tenant — the parsing and modeling rules are fromversion 8.4.0",
-      "A KOI API key with the xt-Administrator role",
-      "An egress IP KOI accepts, or a Cortex engine that has one",
-      "demisto-sdk 1.38+ and a Standard XSIAM API key",
-      "At least one ingested KOI alert, for tests 5 to 7",
-    ]],
-    ["Script Runner only", CYAN, "Run KOI scripts on endpoints from a Job", [
-      "A Cortex XSIAM tenant with Cortex agents installed",
-      "The built-in Core REST API integration, enabled (no KOI key or KOI instance)",
-      "The KOI script package (parameterless) in Action Center → Scripts Library",
-      "An endpoint group of connected, unisolated agents",
-      "Optionally a mail-sender instance for notifications",
-    ]],
-  ];
-  const cw = (W - 0.4) / 2;
-  cols.forEach(([t, c, sub, items], i) => {
-    const x = M + i * (cw + 0.4);
-    card(s, x, 1.92, cw, 4.5, i ? CARD_HI : CARD);
-    s.addText(t, { x: x + 0.34, y: 2.14, w: cw - 0.68, h: 0.34, fontSize: 16, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
-    s.addText(sub, { x: x + 0.34, y: 2.52, w: cw - 0.68, h: 0.3, fontSize: 11, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-    rowList(s, items, x + 0.34, 2.98, cw - 0.68, "tick");
-  });
-  s.addText("The Script Runner playbooks call no koi-* command — only core-get-scripts, core-get-endpoints, core-script-run and core-api-post (that last one via the built-in Core REST API).", {
-    x: M, y: 6.6, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("Verified against the playbook YAML: the five Koi Unified playbooks plus the KoiScanTracker automation invoke no KOI API command, so a script-only customer needs no KOI key or KOI instance — only the built-in Core REST API integration, which KoiScanTracker uses to page endpoint groups past 100.");
-}
-
-/* ============================ 3. Install paths ============================ */
-{
-  const s = newSlide();
-  heading(s, "Installation", "Choose your path — it decides whether events flow");
-  const hy = 1.56;
-  s.addText("Path",        { x: M + 0.3,  y: hy, w: 2.7, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("What lands",  { x: M + 3.2,  y: hy, w: 4.4, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("Events?",     { x: M + 7.9,  y: hy, w: 1.1, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("Use when",    { x: M + 9.1,  y: hy, w: 2.7, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  const paths = [
-    ["demisto-sdk --xsiam", "Everything, at the version you were sent", true, "The normal path"],
-    ["Pre-built dist/Koi.zip", "Integration + 3 playbooks only. No rules, no dashboard", false, "Not for XSIAM"],
-    ["Manual per-item", "Only the items you import yourself", false, "Partial adoption"],
-  ];
-  const ry = 1.94, rh = 0.66;
-  paths.forEach(([p, lands, ok, when], i) => {
-    const y = ry + i * (rh + 0.15);
-    const warn = p.startsWith("Pre-built");   // highlight by content: index shifts when a row is removed
-    card(s, M, y, W, rh, warn ? CARD_HI : CARD);
-    s.addText(p,     { x: M + 0.3, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 11.5, bold: true, color: warn ? AMBER : WHITE, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
-    s.addText(lands, { x: M + 3.2, y: y + 0.19, w: 4.4, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
-    s.addText(ok ? "✓ yes" : "✗ no", { x: M + 7.9, y: y + 0.19, w: 1.1, h: 0.3, fontSize: 11.5, bold: true, color: ok ? GREEN : RED, fontFace: F, margin: 0, valign: "top" });
-    s.addText(when,  { x: M + 9.1, y: y + 0.19, w: 2.7, h: 0.5, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
-  });
-  const cy = ry + paths.length * (rh + 0.15) + 0.22;
-  card(s, M, cy, W, 0.98, CARD_HI);
-  chip(s, M + 0.28, cy + 0.30, "!", AMBER, 0.34);
-  s.addText("The pre-built zip was built for a different marketplace target: inside it the collector flag is isfetchevents: false, and it ships no parsing or modeling rules. Upload it to XSIAM and the commands work, but koi_koi_raw stays empty forever. Event collection needs a demisto-sdk --xsiam upload.", {
-    x: M + 0.82, y: cy + 0.18, w: W - 1.2, h: 0.66, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
-  });
-  s.addNotes("This is the single most consequential choice in the guide. A zip upload produces a tenant where every command works and no data ever arrives — which reads like a collector bug but is simply the wrong artifact.");
-}
-
-/* ============================ 4. Install the full pack ============================ */
-{
-  const s = newSlide();
-  heading(s, "Installation", "Full pack with demisto-sdk");
-  const sw = 7.0, ew = W - sw - 0.4, ex = M + sw + 0.4;
-  card(s, M, 1.58, sw, 4.55);
-  s.addText("Steps", { x: M + 0.34, y: 1.82, w: 3.0, h: 0.3, fontSize: 12.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  rowList(s, [
-    "Install the SDK — 1.38+, older versions reject the platform marketplace.",
-    ["pip3 install demisto-sdk", "code"],
-    "Place the pack at Packs/Koi inside a content-repo scaffold.",
-    "Copy Packs/ApiModules/Scripts/ContentClientApiModule/ from demisto/content.",
-    "Point the SDK at the tenant:",
-    ["export DEMISTO_BASE_URL=https://api-<tenant>...", "code"],
-    ["export DEMISTO_API_KEY=<standard-key>", "code"],
-    ["export XSIAM_AUTH_ID=<key-id>", "code"],
-    ["demisto-sdk upload -i Packs/Koi -z --xsiam", "code"],
-  ], M + 0.34, 2.24, sw - 0.68, "num");
-
-  card(s, ex, 1.58, ew, 4.55, CARD_HI);
-  s.addText("What to expect", { x: ex + 0.34, y: 1.82, w: 3.4, h: 0.3, fontSize: 12.5, bold: true, color: GREEN, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  rowList(s, [
-    "The pack appears on the tenant at its version.",
-    "Integration, playbooks, rules and dashboard all land together.",
-    "Fetch events is available on the instance.",
-  ], ex + 0.34, 2.24, ew - 0.68, "tick");
-
-  card(s, M, 6.25, W, 0.85, CARD_HI);
-  chip(s, M + 0.28, 6.5, "!", AMBER, 0.34);
-  s.addText("The SDK sends the API key as-is, so it works only with a Standard XSIAM key. With an Advanced key the SDK cannot connect — build with zip-packs and POST the artifact to /xsoar/contentpacks/installed/upload with signed headers instead.", {
-    x: M + 0.82, y: 6.38, w: W - 1.2, h: 0.6, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
-  });
-  s.addNotes("Pack-installed items become system-owned and reject individual item uploads afterwards — ship later changes as a new pack version.");
-}
-
-/* ============================ 5. Script Runner only ============================ */
-{
-  const s = newSlide();
-  heading(s, "Installation", "Script Runner only — the minimal import");
-  s.addText("To run KOI scripts from XSIAM Jobs and nothing else, import these six content items by hand, then create the List and two Jobs. Nothing else in the pack is required.", {
-    x: M, y: 1.36, w: 11.4, h: 0.34, fontSize: 12, color: BODY, fontFace: F, margin: 0, valign: "top",
-  });
-  const items = [
-    ["1", "KoiScanTracker  (automation)", "Automation → Scripts → Import", "Import first — every playbook below calls it.", GREEN],
-    ["2", "Koi Unified - Execute Endpoint Script", "Automation → Playbooks → Import", "Selects due endpoints, runs, marks.", CYAN],
-    ["3", "Koi Unified - Process Config Entry", "Automation → Playbooks → Import", "Calls the executor above.", CYAN],
-    ["4", "Koi Unified - Refresh Entry", "Automation → Playbooks → Import", "Walks the group, upserts the tracker.", CYAN],
-    ["5", "Koi Unified - Refresh Tracker", "Automation → Playbooks → Import", "Refresh job entry — calls Refresh Entry.", CYAN],
-    ["6", "Koi Unified - Script Runner", "Automation → Playbooks → Import", "Scan job entry — calls Process Config Entry.", CYAN],
-  ];
-  const rh = 0.56;
-  items.forEach(([n, name, where, note, c], i) => {
-    const y = 1.78 + i * (rh + 0.10);
-    card(s, M, y, W, rh);
-    chip(s, M + 0.26, y + 0.13, n, c, 0.30);
-    s.addText(name,  { x: M + 0.72, y: y + 0.07, w: 5.1, h: 0.26, fontSize: 11.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(where, { x: M + 0.72, y: y + 0.32, w: 5.1, h: 0.22, fontSize: 9.5, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-    s.addText(note,  { x: M + 6.0,  y: y + 0.18, w: W - 6.3, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
-  });
-  const fy = 1.78 + 6 * (rh + 0.10) + 0.06;
-  card(s, M, fy, W, 1.02, CARD_HI);
-  s.addText("Then the List + two Jobs", { x: M + 0.32, y: fy + 0.12, w: 4.4, h: 0.28, fontSize: 11.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
-  s.addText("Create the JSON List Koi Script Runner (Object Setup → Lists). Then two Time-triggered Jobs: Scan → Koi Unified - Script Runner (e.g. 10 min); Refresh → Koi Unified - Refresh Tracker (hourly). Enable both — a new Job can be created disabled. The tracker Lists auto-create on the first Refresh. Also enable the built-in Core REST API integration — no KOI key, instance, rules or dashboard.", {
-    x: M + 0.32, y: fy + 0.40, w: W - 0.64, h: 0.56, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top",
-  });
-  s.addNotes("Import order matters because references bind by name — import what gets called before what calls it (automation first). Two jobs now: Refresh builds the tracker, Scan runs the due endpoints. Refresh must run once before the first Scan or the tracker is empty and Scan has nothing to do.");
-}
-
-/* ============================ 6. Naming requirements ============================ */
-{
-  const s = newSlide();
-  heading(s, "Requirements", "Names that must match exactly");
-  s.addText("Everything below binds by name at run time. A mismatch does not raise a config error — it fails or silently skips at the next run.", {
-    x: M, y: 1.42, w: 10.6, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
-  });
-  const hy = 1.9;
-  s.addText("Name or key",   { x: M + 0.3, y: hy, w: 3.6, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("Must match",    { x: M + 4.1, y: hy, w: 3.5, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("If it does not", { x: M + 7.8, y: hy, w: 4.0, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  const binds = [
-    ["Koi Script Runner", "The JSON List name, character for character", "Job runs, does nothing, prints \"no valid configuration found\""],
-    ["script.name", "A script in Action Center → Scripts Library", "Fails: \"script name was not found in the library\""],
-    ["script.uuid", "Optional. Wins over script.name when set", "Two library entries with one name fail as \"multiple scripts matched\""],
-    ["target.endpoint_groups", "An existing endpoint group with agents in it", "Entry is SKIPPED — an info entry, no failure email"],
-    ["target.endpoint_os", "Windows, macOS or Linux", "Entry is reported invalid and skipped"],
-    ["sendmail_instance.name", "An enabled mail instance, if notifications are on", "Notification step fails"],
-    ["Sub-playbook names", "KOI - / Koi Unified - names, unrenamed", "Parent cannot resolve the sub-playbook"],
-  ];
-  const rh = 0.54;
-  binds.forEach(([k, m, f], i) => {
-    const y = 2.24 + i * (rh + 0.09);
-    card(s, M, y, W, rh);
-    s.addText(k, { x: M + 0.3, y: y + 0.16, w: 3.6, h: 0.28, fontSize: 10.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
-    s.addText(m, { x: M + 4.1, y: y + 0.16, w: 3.5, h: 0.28, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
-    s.addText(f, { x: M + 7.8, y: y + 0.16, w: 4.0, h: 0.28, fontSize: 10.5, color: AMBER, fontFace: F, margin: 0, valign: "top" });
-  });
-  s.addText("The List name is fixed in the playbook task — the platform cannot parameterise ${lists.<name>}. To use another name you must edit the task.", {
-    x: M, y: 6.66, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("Every one of these is a by-name binding taken from the playbook YAML. The skipped-entry case is the quietest: a valid entry with no matching connected endpoint logs an info entry and deliberately sends no email.");
-}
-
-/* ============================ 7. The List — purpose and values ============================ */
-{
-  const s = newSlide();
-  heading(s, "Requirements", "The Koi Script Runner List");
-  s.addText("The List is the entire configuration surface for the Job. It says which script to run, on which endpoints, and who to notify — so retargeting never means editing a playbook.", {
-    x: M, y: 1.42, w: 11.2, h: 0.34, fontSize: 12.5, color: BODY, fontFace: F, margin: 0, valign: "top",
-  });
-  const sw = 6.5, ex = M + sw + 0.4, ew = W - sw - 0.4;
-  card(s, M, 1.92, sw, 3.55);
-  s.addText("One entry per script + OS scope", {
-    x: M + 0.34, y: 2.12, w: sw - 0.68, h: 0.3, fontSize: 12, bold: true, color: ORANGE, fontFace: F, margin: 0, valign: "top",
-  });
-  const json = [
-    '[',
-    '  {',
-    '    "script": { "name": "KOI Deployment Script - Windows" },',
-    '    "target": {',
-    '      "endpoint_groups": ["KOI Endpoints"],',
-    '      "endpoint_os": "Windows",',
-    '      "tracker_list": "Koi Scan Tracker - Windows",',
-    '      "rescan_interval_hours": 720',
-    '    }',
-    '  },',
-    '  { ...one more entry per OS you deploy to... }',
-    ']',
-  ].join("\n");
-  s.addText(json, {
-    x: M + 0.34, y: 2.5, w: sw - 0.68, h: 2.9, fontSize: 9.5, fontFace: MONO,
-    color: CYAN, margin: 0, lineSpacing: 14, valign: "top",
-  });
-
-  card(s, ex, 1.92, ew, 3.55, CARD_HI);
-  s.addText("The four pointers you set", {
-    x: ex + 0.34, y: 2.10, w: ew - 0.68, h: 0.3, fontSize: 12, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
-  });
-  const ptrs = [
-    ["script.name", "A script package in Action Center → Scripts Library", "Sample: KOI Deployment Script - Windows"],
-    ["target.endpoint_groups", "An endpoint group of connected, unisolated agents", "Sample: KOI Endpoints"],
-    ["target.endpoint_os", "The OS scope for that entry", "Windows, macOS or Linux"],
-    ["target.tracker_list", "The CSV List this scope's coverage is tracked in", "Auto-created by Refresh · Koi Scan Tracker - Windows"],
-  ];
-  ptrs.forEach(([k, m, sample], i) => {
-    const y = 2.48 + i * 0.72;
-    s.addText(k, { x: ex + 0.34, y, w: ew - 0.68, h: 0.24, fontSize: 10, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
-    s.addText(m, { x: ex + 0.34, y: y + 0.23, w: ew - 0.68, h: 0.24, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
-    s.addText(sample, { x: ex + 0.34, y: y + 0.45, w: ew - 0.68, h: 0.22, fontSize: 9, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
-  });
-
-  card(s, M, 5.66, W, 1.16, CARD_HI);
-  chip(s, M + 0.28, 6.06, "!", AMBER, 0.34);
-  s.addText("There is no required script name. The pack ships neither the List nor any script package — you create both, and the names above are samples from the customer guide, not fixed values. What matters is that every name in the List matches something that exists on your tenant. To retarget later — a different script, another endpoint group, a new OS — edit the List; the playbooks never change.", {
-    x: M + 0.82, y: 5.84, w: W - 1.2, h: 0.84, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top",
-  });
-  s.addNotes("Customers frequently look for a mandated script name. There isn't one: script.name is a pointer into the Action Center Scripts Library, and the only requirement is that the two sides agree. Same for the endpoint group.");
-}
-
-/* ============================ 8. List fields ============================ */
-{
-  const s = newSlide();
-  heading(s, "Requirements", "Every List field, and what it defaults to");
-  const hy = 1.5;
-  s.addText("Field",    { x: M + 0.3, y: hy, w: 4.2, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("Required", { x: M + 4.7, y: hy, w: 1.6, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  s.addText("Default and notes", { x: M + 6.5, y: hy, w: 5.3, h: 0.28, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
-  const fields = [
-    ["script.name", "Yes *", "No default. Must equal the Scripts Library name exactly. Must be parameterless.", GREEN],
-    ["script.uuid", "No", "Wins over script.name. Use it to survive renames or duplicates.", MUTED],
-    ["script.polling_interval_in_seconds", "No", "60 seconds.", MUTED],
-    ["script.timeout_in_seconds", "No", "1800 seconds.", MUTED],
-    ["target.endpoint_os", "Yes", "No default. Windows, macOS or Linux — case-insensitive.", GREEN],
-    ["target.endpoint_groups", "One of these", "No default. Group names holding the target agents.", GREEN],
-    ["target.endpoint_hostnames", "One of these", "No default. Specific hostnames instead of a group.", GREEN],
-    ["target.tracker_list", "Yes", "No default. The CSV List this scope is tracked in; Refresh creates it.", GREEN],
-    ["target.rescan_interval_hours", "No", "720 (30 days). Hours before a scanned endpoint is due again.", MUTED],
-    ["notification.recipients", "No", "Omit for no email at all.", MUTED],
-    ["notification.sendmail_instance.name", "No", "Omit to use any enabled mail instance.", MUTED],
-    ["disabled", "No", "false. Set true to skip the entry without deleting it.", MUTED],
-  ];
-  const rh = 0.35;
-  fields.forEach(([f, req, note, c], i) => {
-    const y = 1.78 + i * (rh + 0.05);
-    card(s, M, y, W, rh);
-    s.addText(f,    { x: M + 0.3, y: y + 0.07, w: 4.2, h: 0.24, fontSize: 9.5, bold: true, color: CYAN, fontFace: MONO, margin: 0, valign: "top" });
-    s.addText(req,  { x: M + 4.7, y: y + 0.07, w: 1.6, h: 0.24, fontSize: 9.5, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
-    s.addText(note, { x: M + 6.5, y: y + 0.07, w: 5.3, h: 0.24, fontSize: 9.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
-  });
-  s.addText("*  script.name or script.uuid — one of the two is required.   Every entry also needs endpoint_os, tracker_list, plus endpoint_groups or endpoint_hostnames.", {
-    x: M, y: 1.78 + fields.length * (rh + 0.05) + 0.12, w: W, h: 0.3,
-    fontSize: 9.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("An entry missing a required field is not a job failure: it is reported with the offending entry and skipped, and the rest of the List still runs.");
-}
-
-/* ============================ 3. The test plan ============================ */
-{
-  const s = newSlide();
-  heading(s, "Test plan", "What you are going to prove");
-  const tests = [
-    ["1", "Connectivity & authorisation", "The key works and your egress is accepted", ORANGE],
-    ["2", "Event collection", "Alerts and audit logs land in koi_koi_raw", ORANGE],
-    ["3", "Command surface", "The read commands return live tenant data", ORANGE],
-    ["4", "Dashboard & data model", "Events are normalised and visualised", ORANGE],
-    ["5", "Alert triage end to end", "Every alert is investigated and classified", CYAN],
-    ["6", "The two investigations", "Item and device context is gathered", CYAN],
-    ["7", "Gated response", "Nothing is blocked without a human", GREEN],
-    ["8", "Scheduled hunt", "Risky MCP servers surface without an alert", CYAN],
-    ["9", "Script Runner job", "KOI scripts run on Cortex-Agent endpoints", ORANGE],
-  ];
-  const cw = (W - 0.6) / 3, ch = 1.42;
-  tests.forEach(([n, t, d, c], i) => {
-    const x = M + (i % 3) * (cw + 0.3);
-    const y = 1.62 + Math.floor(i / 3) * (ch + 0.24);
-    card(s, x, y, cw, ch);
-    chip(s, x + 0.26, y + 0.26, n, c, 0.34);
-    s.addText(t, { x: x + 0.26, y: y + 0.72, w: cw - 0.52, h: 0.3, fontSize: 12.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(d, { x: x + 0.26, y: y + 1.02, w: cw - 0.52, h: 0.34, fontSize: 10, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
-  });
-  s.addText("Run them in order — each test assumes the previous one passed.", {
-    x: M, y: 6.62, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("Tests 1-4 are plumbing, 5-8 automation, 9 fleet execution. Test 7 is the one that must pass before production.");
-}
-
-/* ============================ 4. Test 1 ============================ */
-testSlide("Test 1", "Connectivity & authorisation",
-  [
-    "Settings → Integrations → add a KOI instance.",
-    ["Server URL:  https://api.prod.koi.security/", "code"],
-    "Paste the API key, then click Test.",
-    ["!koi-devices-list limit=5", "code"],
-    ["!koi-users-list limit=1", "code"],
-  ],
-  [
-    "Test returns Success.",
-    "A device table with up to five rows.",
-    "koi-users-list returns a user record.",
-    "No 403 Forbidden on either command.",
-  ],
-  "koi-users-list is the egress probe. A valid key can still return 403 from a shared cloud egress — if it does, run the integration on a Cortex engine whose egress IP KOI accepts. Event collection is unaffected either way."
-).addNotes("If Test succeeds but koi-users-list returns 403, the key is fine and the source IP is the problem.");
-
-/* ============================ 5. Test 2 ============================ */
-testSlide("Test 2", "Event collection",
-  [
-    "On the instance, enable Fetch events and save.",
-    "Wait for one or two fetch cycles.",
-    ["dataset = koi_koi_raw", "code"],
-    ["| comp count() as events by source_log_type", "code"],
-    "Re-run the query after the next cycle.",
-    ["!koi-fetch-context-get", "code"],
-  ],
-  [
-    "Rows for the Alerts and Audit log types.",
-    "Counts increase between the two runs.",
-    "koi-fetch-context-get shows the cursor.",
-  ],
-  "Event collection uses a different KOI endpoint from the command surface, so it keeps working even when the sensitive endpoints return 403. A passing test 2 alongside a failing test 1 points squarely at egress."
-).addNotes("Give it two cycles before judging. A single cycle with no new KOI activity legitimately returns nothing.");
-
-/* ============================ 6. Test 3 ============================ */
-testSlide("Test 3", "Command surface",
-  [
-    "Sweep the read commands in the playground:",
-    ["!koi-inventory-list limit=5", "code"],
-    ["!koi-koidex-search query=<package>", "code"],
-    ["!koi-blocklist-get", "code"],
-    ["!koi-policy-list", "code"],
-    ["!koi-findings-list", "code"],
-    "Take a device id from test 1 and run:",
-    ["!koi-device-inventory-get device_id=<id>", "code"],
-  ],
-  [
-    "Each returns a table plus context under Koi.*",
-    "No 403 on any of them.",
-    "Lists everything installed on that host.",
-    "500 items on one host, 35 flagged high risk.",
-  ],
-  "Twenty of the twenty-six commands are read-only. Only six change tenant state: the allowlist and blocklist add/remove pairs, koi-policy-status-update and koi-fetch-context-set. None of them run in this test."
-).addNotes("This is the test that most often exposes the egress problem, because it hits the sensitive endpoints hardest.");
-
-/* ============================ 7. Test 4 ============================ */
-testSlide("Test 4", "Dashboard & data model",
-  [
-    "Dashboards & Reports → open Koi Alerts Dashboard.",
-    "Set the time range to cover your ingested data.",
-    "Confirm each widget renders.",
-    "Then check the modelling with XQL:",
-    ["dataset = koi_koi_raw | fields xdm.*", "code"],
-  ],
-  [
-    "Widgets render with data, not empty states.",
-    "XDM fields are populated, not null.",
-    "Alert activity matches what KOI shows.",
-  ],
-  "An empty dashboard with a passing test 2 usually means the time range, not the data. Widen it before investigating the rules."
-).addNotes("The parsing and modeling rules are user-defined and target koi_koi_raw.");
-
-/* ============================ 8. Test 5 ============================ */
-testSlide("Test 5", "Alert triage, end to end",
-  [
-    "Open an ingested KOI alert (source koi).",
-    "Attach and run KOI - Alert Triage.",
-    "Watch the Work Plan to completion.",
-    "Read the war room from top to bottom.",
-  ],
-  [
-    "Work Plan completes — runStatus: completed.",
-    "An item investigation summary is posted.",
-    "A device investigation summary is posted.",
-    "A triage summary carries a verdict.",
-    "Benign auto-closes, Suspicious stays open, Malicious raises severity.",
-  ],
-  "Reference run: a vulnerable-dependency alert on a package whose KOI catalog risk is High escalated to Malicious — driven by the independent catalog data, not the alert's own severity. That corroboration is the point of the verdict logic."
-).addNotes("If the playbook cannot find the item, the alert may map the KOI payload to a field other than incident.details — adjust the alert_description input on KOI - Extract Alert Context.");
-
-/* ============================ 9. Test 6 ============================ */
-testSlide("Test 6", "The two investigations",
-  [
-    "In the test 5 run, open the item investigation summary.",
-    "Open the device investigation summary and its risky-items table.",
-    "Optionally run the device investigation on its own:",
-    ["KOI - Investigate Device, device_id=<id>", "code"],
-  ],
-  [
-    "Item: catalog risk and AI summary, org exposure, endpoints and users, blocklist state, remediation and approval history.",
-    "Device: everything installed on the host, which of it is risky, host remediations.",
-  ],
-  "Known cosmetic issue: a few item-investigation fields render with array brackets — [\"high\"] rather than high — because the platform resolves arrays differently inside a sub-playbook. The values are correct and the analyst-facing triage summary renders clean."
-).addNotes("Both investigations are best-effort: if KOI is unreachable the playbook still completes, it just has less to show.");
-
-/* ============================ 10. Test 7 ============================ */
-{
-  const s = testSlide("Test 7  ·  safety-critical", "Response stays gated on a human",
-    [
-      "Let a Malicious verdict reach the response step, or run it directly:",
-      ["KOI - Block and Remediate", "code"],
-      ["item_id=<id>  marketplace=<mp>  auto_block=false", "code"],
-      "Do not approve yet.",
-      "Inspect the run state and the war room.",
-      "Then approve, and re-inspect.",
-    ],
-    [
-      "The run parks — runStatus: waiting.",
-      "koi-blocklist-items-add has NOT executed.",
-      "The approval shows the full investigation.",
-      "An already-blocklisted item short-circuits as Already blocked.",
-      "Only then does the blocklist write fire.",
-    ],
-    "This is the one test that must pass before you use the pack in production. Triage always calls the response playbook with auto_block=false, so a Malicious verdict can never block software on its own."
-  );
-  s.addNotes("The blocklist add is the only state-changing command the automation can reach. Verify it did not run before approval — check the war room command history, not just the playbook view.");
-}
-
-/* ============================ 11. Test 8 ============================ */
-testSlide("Test 8", "Scheduled hunt for risky MCP servers",
-  [
-    "Run KOI - MCP Server Audit manually first.",
-    "Leave risk_levels at its default:",
-    ["high,critical", "code"],
-    "Review what it flags.",
-    "Then attach it to a time-triggered Job.",
-  ],
-  [
-    "MCP-server inventory is enumerated.",
-    "Items at or above the threshold are flagged and reported.",
-    "Runs on your schedule with no alert needed.",
-  ],
-  "The audit queries koi-inventory-list with view=mcp_servers. Confirm that view matches how your tenant categorises MCP servers — if it returns nothing, check the categorisation before assuming the estate is clean."
-).addNotes("This is the proactive half of the pack: it finds risky agentic-AI assets without waiting for KOI to raise an alert.");
-
-/* ============================ 12. Test 9 ============================ */
-testSlide("Test 9", "Script Runner job",
-  [
-    "Confirm the prerequisites: Core REST API enabled, the parameterless script in Action Center, an endpoint group, and the JSON List Koi Script Runner with tracker_list set.",
-    "Run the Refresh job first — Koi Unified - Refresh Tracker — Automation → Jobs → Run now.",
-    "Then run the Scan job — Koi Unified - Script Runner — Run now.",
-    "Open the run, then open Action Center.",
-  ],
-  [
-    "Refresh fills the tracker List (e.g. Koi Scan Tracker - Windows) with endpoint_id,last_scan rows.",
-    "Scan: Work Plan green; ScriptResult ok:true plus an action_id.",
-    "Scanned endpoints get last_scan stamped; offline / wrong-OS / not-in-inventory rows stay due.",
-    "SKIPPED info entries where no due, connected endpoint matches — and no failure email.",
-    "Action Center shows the script dispatched.",
-  ],
-  "Two jobs (enable both after creating them): Refresh builds the tracker, Scan runs the due endpoints — run Refresh once before the first Scan. Mark-on-dispatch means a poll timeout logs STILL RUNNING and never emails; a SKIPPED entry is not a failure."
-).addNotes("Coverage is tracker-driven now. Refresh enumerates the group (paged past 100 via Core REST API) into the tracker; Scan takes up to 100 due, connected, right-OS endpoints, dispatches, and marks them. Groups over 100 are covered across successive Scan runs, then re-scanned every rescan_interval_hours.");
-
-/* ============================ 13. Troubleshooting ============================ */
-{
-  const s = newSlide();
-  heading(s, "If something fails", "Symptom → cause → fix");
+  heading(s, "Contents", "What ships in the pack");
   const rows = [
-    ["403 on inventory, koidex or users", "Source IP not accepted by KOI's edge", "Run the integration on a Cortex engine with an allowlisted egress IP"],
-    ["Test passes but no events arrive", "Fetch events not enabled, or no new KOI activity", "Enable it, wait two cycles, check koi-fetch-context-get"],
-    ["Triage cannot find the item", "The alert maps the KOI payload elsewhere", "Adjust alert_description on KOI - Extract Alert Context"],
-    ["Enrichment empty, playbook still green", "Best-effort by design — KOI was unreachable", "Verify with !koi-users-list limit=1"],
-    ["Scan runs but nothing is scanned", "Tracker empty — Refresh not run yet, or Core REST API off", "Run the Refresh job first; enable Core REST API"],
-    ["Job entry reports SKIPPED", "No due, connected endpoint matches the scope right now", "Check group membership and endpoint_os in the List"],
-    ["Script not found at dispatch", "Library name does not match script.name exactly", "Fix the name, or pin script.uuid to be rename-proof"],
+    ["A", "KOI integration", "Event collector plus 26 commands — devices, inventory, catalog risk, governance.", ORANGE],
+    ["B", "Parsing & modeling rules", "Normalise KOI events and map them to the Cortex Data Model.", ORANGE],
+    ["C", "Alerts dashboard", "Ready-made view of KOI alert activity.", ORANGE],
+    ["D", "Triage & investigation playbooks", "7 playbooks: triage, item and device investigation, gated response, MCP hunt.", CYAN],
+    ["E", "Script Runner playbooks", "5 playbooks plus the KoiScanTracker automation — run KOI scripts fleet-wide.", CYAN],
+    ["F", "XQL query library", "72 saved queries: 26 threat hunts and 46 detections.", GREEN],
+    ["G", "Test tooling", "An event simulator, so you can test without waiting for real KOI activity.", GREEN],
   ];
-  const y0 = 1.60, rh = 0.54;                    // every cell is one line — hug it
-  rows.forEach(([sym, cause, fix], i) => {
-    const y = y0 + i * (rh + 0.14);
+  const rh = 0.64;
+  rows.forEach(([g, t, d, c], i) => {
+    const y = 1.5 + i * (rh + 0.11);
     card(s, M, y, W, rh);
-    s.addText(sym, { x: M + 0.3, y: y + 0.17, w: 3.5, h: 0.3, fontSize: 11.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
-    s.addText(cause, { x: M + 4.0, y: y + 0.18, w: 3.6, h: 0.3, fontSize: 10.5, color: AMBER, fontFace: F, margin: 0, valign: "top" });
-    s.addText(fix, { x: M + 7.8, y: y + 0.18, w: W - 8.1, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    chip(s, M + 0.26, y + 0.16, g, c, 0.32);
+    s.addText(t, { x: M + 0.76, y: y + 0.10, w: 3.7, h: 0.26, fontSize: 12, bold: true,
+      color: WHITE, fontFace: F, margin: 0, valign: "top" });
+    s.addText(d, { x: M + 4.6, y: y + 0.12, w: W - 4.9, h: 0.4, fontSize: 10.5,
+      color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
   });
-  s.addText("The first row accounts for most real-world failures — check egress before anything else.", {
-    x: M, y: y0 + rows.length * (rh + 0.14) + 0.14, w: W, h: 0.3,
-    fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("Almost every real-world failure is one of these seven. The first is by far the most common; the tracker-empty row is the most common Script-Runner-specific one.");
+  s.addText("Every one of these is covered by a test in this guide.", { x: M, y: 6.75, w: W, h: 0.3,
+    fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
 }
 
-/* ============================ 14. Sign-off ============================ */
+/* ============================ 3. How to read ============================ */
 {
   const s = newSlide();
-  // kept above the card grid (bottom at 1.4in vs the first row at 1.66) — at its
-  // previous size the arc showed through the gaps between the right-hand cards
-  s.addShape(pres.ShapeType.ellipse, {
-    x: 11.4, y: -3.4, w: 4.8, h: 4.8,
-    fill: { color: GREEN, transparency: 93 }, line: { color: GREEN, width: 1 },
+  heading(s, "How to use this guide", "Every test is laid out the same way");
+  const cols = [
+    ["WHAT YOU NEED FIRST", AMBER, "The tenant setup this test depends on — an integration instance, a List, a script in Action Center. If something here is missing the test cannot pass, and it will look like a product fault."],
+    ["STEPS", ORANGE, "What to click, in order, in the Cortex XSIAM console. Commands to paste are shown in monospace."],
+    ["WHAT TO EXPECT", GREEN, "What a passing test looks like. Where a result commonly looks wrong but is correct, it says so."],
+  ];
+  const cw = (W - 0.6) / 3;
+  cols.forEach(([t, c, d], i) => {
+    const x = M + i * (cw + 0.3);
+    card(s, x, 1.6, cw, 2.5, i === 1 ? CARD : CARD_HI);
+    s.addText(t, { x: x + 0.3, y: 1.85, w: cw - 0.6, h: 0.3, fontSize: 11, bold: true,
+      color: c, fontFace: F, charSpacing: 1.5, margin: 0, valign: "top" });
+    s.addText(d, { x: x + 0.3, y: 2.25, w: cw - 0.6, h: 1.7, fontSize: 11, color: BODY,
+      fontFace: F, margin: 0, lineSpacing: 14, valign: "top" });
   });
+  card(s, M, 4.35, W, 1.5, CARD_HI);
+  s.addText("Run them in order the first time", { x: M + 0.34, y: 4.55, w: 5.0, h: 0.3,
+    fontSize: 13, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Tests 1 to 4 prove data is arriving and correct. Tests 5 to 8 prove the automation. Tests 9 and 10 prove fleet script execution — they are the only ones that need the Core REST API integration. Tests 11 and 12 are the query library and the simulator, and can be run at any time.",
+    { x: M + 0.34, y: 4.92, w: W - 0.68, h: 0.8, fontSize: 11, color: BODY, fontFace: F,
+      margin: 0, lineSpacing: 14, valign: "top" });
+  s.addText("A test that fails on a missing prerequisite is not a product defect — check the amber panel first.",
+    { x: M, y: 6.15, w: W, h: 0.3, fontSize: 11, italic: true, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+}
+
+/* ============================ 4. Prerequisites ============================ */
+{
+  const s = newSlide();
+  heading(s, "Before you begin", "Everything the pack depends on, and where to set it up");
+  const hy = 1.45;
+  s.addText("What",     { x: M + 0.3,  y: hy, w: 3.0, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Where in XSIAM", { x: M + 3.4, y: hy, w: 4.1, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Needed for", { x: M + 7.7, y: hy, w: 4.1, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  const rows = [
+    ["KOI API key", "KOI console → Settings → API Access", "Tests 1-8, 11", CYAN],
+    ["KOI integration instance", "Settings → Data Sources → Add → KOI", "Tests 1-8, 11", CYAN],
+    ["An egress IP KOI accepts", "Run the instance on a Cortex engine if needed", "Tests 1-8, 11", AMBER],
+    ["Core REST API instance", "Settings → Data Sources → Add → Core REST API", "Tests 9-10 only", AMBER],
+    ["KOI script in Action Center", "Action Center → Scripts Library → upload", "Tests 9-10", CYAN],
+    ["An endpoint group", "Endpoints → Endpoint Groups", "Tests 9-10", CYAN],
+    ["\"Koi Script Runner\" JSON List", "Settings → Object Setup → Lists", "Tests 9-10", CYAN],
+    ["Mail sender instance (optional)", "Settings → Data Sources", "Tests 9-10 notifications", MUTED],
+  ];
+  const rh = 0.44;
+  rows.forEach(([a, b, c, col], i) => {
+    const y = 1.78 + i * (rh + 0.07);
+    card(s, M, y, W, rh);
+    s.addText(a, { x: M + 0.3, y: y + 0.12, w: 3.0, h: 0.26, fontSize: 10.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+    s.addText(b, { x: M + 3.4, y: y + 0.12, w: 4.2, h: 0.26, fontSize: 10, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    s.addText(c, { x: M + 7.7, y: y + 0.12, w: 4.1, h: 0.26, fontSize: 10, bold: true, color: col, fontFace: F, margin: 0, valign: "top" });
+  });
+  card(s, M, 6.05, W, 0.85, CARD_HI);
+  chip(s, M + 0.26, 6.3, "!", AMBER, 0.32);
+  s.addText("The Core REST API instance is the one people miss. The Script Runner uses it to read endpoint groups larger than 100 — without it the tracker stays empty and every scan run does nothing, which looks exactly like a broken playbook.",
+    { x: M + 0.76, y: 6.18, w: W - 1.1, h: 0.6, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
+}
+
+/* ============================ 5. Install ============================ */
+{
+  const s = newSlide();
+  heading(s, "Installation", "Two ways in — only one collects events");
+  const hy = 1.5;
+  s.addText("Method", { x: M + 0.3, y: hy, w: 3.0, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("What lands", { x: M + 3.5, y: hy, w: 5.2, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  s.addText("Events?", { x: M + 8.9, y: hy, w: 1.4, h: 0.26, fontSize: 10.5, bold: true, color: ORANGE, fontFace: F, charSpacing: 1, margin: 0, valign: "top" });
+  const paths = [
+    ["demisto-sdk upload", "Everything — integration, playbooks, rules, dashboard", true],
+    ["Pack zip upload", "Content only. The collector and rules do not activate", false],
+  ];
+  paths.forEach(([a, b, ok], i) => {
+    const y = 1.85 + i * 0.78;
+    card(s, M, y, W, 0.66, ok ? CARD : CARD_HI);
+    s.addText(a, { x: M + 0.3, y: y + 0.2, w: 3.1, h: 0.3, fontSize: 12, bold: true, color: ok ? WHITE : AMBER, fontFace: F, margin: 0, valign: "top" });
+    s.addText(b, { x: M + 3.5, y: y + 0.21, w: 5.3, h: 0.3, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    s.addText(ok ? "✓ yes" : "✗ no", { x: M + 8.9, y: y + 0.2, w: 1.4, h: 0.3, fontSize: 12, bold: true, color: ok ? GREEN : RED, fontFace: F, margin: 0, valign: "top" });
+  });
+  card(s, M, 3.5, W, 1.35, CARD_HI);
+  s.addText("Ask whoever sent you the pack to install it", { x: M + 0.34, y: 3.68, w: 8.0, h: 0.3, fontSize: 12.5, bold: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Installing with demisto-sdk is a developer task and needs a Standard XSIAM API key. If you are testing rather than deploying, have it installed for you and start at Test 1. Nothing else in this guide needs a developer.",
+    { x: M + 0.34, y: 4.05, w: W - 0.68, h: 0.7, fontSize: 11, color: BODY, fontFace: F, margin: 0, lineSpacing: 14, valign: "top" });
+  card(s, M, 5.05, W, 1.5, CARD_HI);
+  s.addText("Confirm it landed", { x: M + 0.34, y: 5.22, w: 4.0, h: 0.3, fontSize: 12.5, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+  rowList(s, [
+    "Settings → Data Sources — a KOI integration is offered.",
+    "Automation → Playbooks — 12 playbooks whose names start with KOI.",
+    "Dashboards & Reports — the KOI Alerts Dashboard exists.",
+  ], M + 0.34, 5.6, W - 0.68, "tick");
+}
+
+/* ============================ 6. The test plan ============================ */
+{
+  const s = newSlide();
+  heading(s, "Test plan", "Twelve tests, four groups");
+  const groups = [
+    ["Data is arriving and correct", ORANGE, ["1  Connectivity", "2  Event collection", "3  Parsing & data model", "4  Dashboard"]],
+    ["The automation works", CYAN, ["5  Alert triage", "6  Item & device investigation", "7  Gated response", "8  MCP server hunt"]],
+    ["Fleet script execution", AMBER, ["9  Refresh the tracker", "10  Scan due endpoints"]],
+    ["Extras, any time", GREEN, ["11  Threat-hunting library", "12  Simulated test data"]],
+  ];
+  let y = 1.5;
+  groups.forEach(([t, c, items]) => {
+    const h = 0.52 + Math.ceil(items.length / 4) * 0.42;
+    card(s, M, y, W, h);
+    s.addText(t, { x: M + 0.32, y: y + 0.16, w: 5.0, h: 0.28, fontSize: 12.5, bold: true, color: c, fontFace: F, margin: 0, valign: "top" });
+    items.forEach((it, j) => {
+      s.addText(it, { x: M + 0.32 + j * 2.95, y: y + 0.56, w: 2.85, h: 0.28, fontSize: 11, color: BODY, fontFace: F, margin: 0, valign: "top" });
+    });
+    y += h + 0.16;
+  });
+  card(s, M, y, W, 0.8, CARD_HI);
+  chip(s, M + 0.26, y + 0.23, "!", AMBER, 0.32);
+  s.addText("Only tests 9 and 10 need the Core REST API integration. Only tests 1-8 and 11 need a KOI API key. Test 12 needs neither and is the fastest way to see the pack working.",
+    { x: M + 0.76, y: y + 0.16, w: W - 1.1, h: 0.55, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
+  s.addNotes("Grouping by dependency, not just by order, so a tester who is blocked on one prerequisite can still make progress elsewhere.");
+}
+
+testSlide("Test 1", "Connectivity and authorisation",
+  ["A KOI API key (KOI console → Settings → API Access)",
+   "Permission to add an integration instance in XSIAM"],
+  ["Settings → Data Sources → Add an instance → search KOI.",
+   ["Server URL:  https://api.prod.koi.security/", "code"],
+   "Paste the API key. Optionally set a Tenant Name label.",
+   "Click Test, then Save.",
+   "Open the CLI at the bottom of any incident and run:",
+   ["!koi-devices-list limit=5", "code"]],
+  ["Test returns Success.",
+   "The command returns a table of up to five devices.",
+   "If you set a Tenant Name it will appear on collected events later."],
+  "A 403 here almost always means egress, not a bad key: KOI restricts its sensitive endpoints by source IP. Run the instance on a Cortex engine whose address KOI accepts. A 401 means the key itself."
+).addNotes("Egress is the single most common deployment problem and it is not obvious from the error.");
+
+testSlide("Test 2", "Event collection",
+  ["Test 1 passing", "Fetch events enabled on the KOI instance"],
+  ["Edit the KOI instance and tick Fetch events.",
+   "Choose which event types to collect, then Save.",
+   "Wait for two collection cycles.",
+   "Open Incident Response → Investigation → Query Builder and run:",
+   ["dataset = koi_koi_raw", "code"],
+   ["| comp count() as rows by source_log_type", "code"]],
+  ["Rows appear under Alerts, Audit, or both.",
+   "Counts grow between cycles."],
+  "No rows at all usually means fetch was only just enabled — give it two cycles. Audit missing on its own means the Audit types filter is narrowed; leave it empty for all types."
+);
+
+testSlide("Test 3", "Parsing and the data model",
+  ["Test 2 passing — events present in koi_koi_raw"],
+  ["In Query Builder, count real alerts rather than rows:",
+   ["dataset = koi_koi_raw", "code"],
+   ['| filter source_log_type = "Alerts"', "code"],
+   ['| alter nid = json_extract_scalar(metadata, "$.notification_event_id")', "code"],
+   ["| comp count() as rows, count_distinct(nid) as real_alerts", "code"]],
+  ["Both numbers return.",
+   "rows is larger than real_alerts — often much larger.",
+   "Fields such as item_id, alert_hostname and risk_level are populated and directly queryable."],
+  "rows far exceeding real_alerts is CORRECT. KOI re-sends every still-open alert on each fetch, so a row is a delivery, not an alert. Anything counting alerts must count distinct notification ids — the dashboard already does."
+).addNotes("This is the number one thing testers misread as a duplication bug.");
+
+testSlide("Test 4", "Dashboard",
+  ["Test 2 passing — events present"],
+  ["Dashboards & Reports → open the KOI Alerts Dashboard.",
+   "Read the alert totals, risk mix and top items.",
+   "Come back after another collection cycle and compare."],
+  ["Widgets render with data.",
+   "Alert counts are far lower than the raw row count from Test 3.",
+   "Counts stay stable as fetches repeat — they do not climb on their own."],
+  "A widget whose number climbs steadily while nothing new happens in KOI would be counting deliveries rather than alerts. Every widget in this pack de-duplicates first."
+);
+
+testSlide("Test 5", "Alert triage",
+  ["Test 1 passing — the KOI integration answers",
+   "A KOI alert in XSIAM (a correlation rule over koi_koi_raw, or Test 12 for simulated data)"],
+  ["Open a KOI alert.",
+   "Attach the triage playbook, or run from the CLI:",
+   ['!setPlaybook playbookId="KOI - Alert Triage"', "code"],
+   "Watch the Work Plan, then read the War Room."],
+  ["Context is extracted: item, marketplace, risk, host.",
+   "A verdict is posted: Malicious, Suspicious or Benign.",
+   "Low risk auto-closes; critical and high escalate.",
+   "Medium and pending stay open for a human."],
+  "Everything coming out Suspicious usually means the alert carried no KOI detail for the playbook to read. Check the correlation rule passes the KOI fields through. Pending means KOI has not finished scoring — it deliberately never auto-closes."
+);
+
+testSlide("Test 6", "Item and device investigation",
+  ["Test 1 passing", "An item id and its marketplace, and a device id — both visible on any KOI alert"],
+  ["Automation → Playbooks → KOI - Investigate Item → Run.",
+   "Supply item_id and marketplace.",
+   "Repeat with KOI - Investigate Device and a device id."],
+  ["An investigation summary with catalog risk and an AI-written summary.",
+   "Organisation exposure: installs, endpoints, affected users.",
+   "Both governance counts — on blocklist AND on allowlist.",
+   "For the device: everything installed on that host, and which of it is risky."],
+  "Both governance counts matter. Zero blocklist hits alone does not mean nobody has governed the item — it may have been explicitly allowed, and blocking it would override that decision."
+);
+
+testSlide("Test 7", "Gated response",
+  ["Test 1 passing", "An item id and marketplace", "Permission to approve a task"],
+  ["Automation → Playbooks → KOI - Block and Remediate → Run.",
+   "Supply item_id and marketplace.",
+   "Open the pending approval task and read it.",
+   "Approve, or leave it pending."],
+  ["The run PARKS on an approval task and waits.",
+   "The approval shows the full investigation and both governance counts.",
+   "Nothing reaches the blocklist until a human approves.",
+   "An item already blocked short-circuits instead of being added twice."],
+  "This is the test to repeat after any change to the response playbook. If a run ever completes without stopping for approval, stop and investigate before using the pack in production."
+).addNotes("The only state-changing action in the pack. Treat this as the production gate.");
+
+testSlide("Test 8", "MCP server hunt",
+  ["Test 1 passing — the KOI integration answers"],
+  ["Automation → Playbooks → KOI - MCP Server Audit → Run.",
+   "Optionally set risk_levels (default high, critical).",
+   "Read the War Room table.",
+   "To schedule it: Automation → Jobs → New Job, time-triggered."],
+  ["A table of MCP servers at or above the risk threshold.",
+   "An empty table is a valid result — it means nothing risky is installed."],
+  "This asks KOI what it has already scored. It finds risky agentic-AI assets without waiting for an alert about them."
+);
+
+testSlide("Test 9", "Script Runner — refresh the tracker",
+  ["Core REST API integration instance configured  ← the one people miss",
+   "A KOI script uploaded in Action Center → Scripts Library (it must take no parameters)",
+   "An endpoint group containing your agents",
+   'A JSON List named exactly "Koi Script Runner"'],
+  ["Settings → Object Setup → Lists → New List, type JSON, named Koi Script Runner.",
+   "Give each entry a script name, endpoint_os, endpoint group, tracker_list and rescan_interval_hours.",
+   "Automation → Jobs → New Job → time-triggered → playbook Koi Unified - Refresh Tracker.",
+   "Enable the Job, then use Run now."],
+  ["A tracker List appears under Lists, named as in your entry.",
+   "It fills with one row per endpoint: an id and a last-scan value.",
+   "Re-running adds new endpoints without disturbing existing rows."],
+  "Without a Core REST API instance this test cannot pass — the refresh reads endpoint groups through it. The tracker simply stays empty, which looks like a broken playbook."
+).addNotes("Refresh must run before Scan. An empty tracker means Scan has nothing to do.");
+
+testSlide("Test 10", "Script Runner — scan due endpoints",
+  ["Test 9 passing — the tracker List has rows",
+   "Connected agents in the group, matching the entry's endpoint_os"],
+  ["Automation → Jobs → New Job → time-triggered → playbook Koi Unified - Script Runner.",
+   "Enable the Job, then Run now.",
+   "Open the run, then check Action Center.",
+   "Run it a second time immediately."],
+  ["The script is dispatched to due, connected endpoints.",
+   "Those endpoints get a last-scan timestamp in the tracker.",
+   "Offline, wrong-OS and unknown endpoints stay due and retry later.",
+   "The second run does nothing — everything is inside the rescan interval."],
+  "SKIPPED means nothing is due right now and sends no email, by design. STILL RUNNING means the script was dispatched and Action Center is finishing on its own. Neither is a failure."
+);
+
+testSlide("Test 11", "Threat-hunting query library",
+  ["Test 2 passing — events present",
+   "Cortex XDR data for the cross-dataset hunts (optional)"],
+  ["Open docs/xql in the pack you were sent.",
+   "Read QUERY_LIBRARY.md first — it explains the rules.",
+   "Paste a hunt into Query Builder, starting with H2.1.",
+   "Try a detection too, for example A1."],
+  ["Each query runs and returns rows, or a clean empty result.",
+   "Hunts surface findings KOI scored that nobody actioned.",
+   "26 hunts and 46 detections are included."],
+  "These read raw event fields, so they keep working regardless of the modeling rule. An empty result is a valid answer, not a failure."
+);
+
+testSlide("Test 12", "Simulated test data",
+  ["The KoiSimulateEvents automation imported (ships in TestTools)",
+   "No KOI API key and no Core REST API needed"],
+  ["Open the CLI on any incident.",
+   "Run:",
+   ["!KoiSimulateEvents alerts=40 duplicate_factor=8 audit=60", "code"],
+   "Read the summary it prints — it tells you the answers in advance.",
+   "Query koisim_koisim_raw to check them."],
+  ["380 events land in koisim_koisim_raw.",
+   "40 distinct alerts delivered 8 times each, as real KOI does.",
+   "The counts you measure match the summary exactly."],
+  "It writes to its own dataset, never koi_koi_raw, so it cannot disturb real data. Use it to see the pack working before real KOI activity exists."
+).addNotes("Fastest possible demo: no KOI key, no waiting, and the expected numbers are printed up front.");
+
+/* ============================ Troubleshooting ============================ */
+{
+  const s = newSlide();
+  heading(s, "If something fails", "Check the prerequisite before the product");
+  const rows = [
+    ["403 on KOI commands", "Source IP not accepted by KOI", "Run the instance on a Cortex engine KOI accepts"],
+    ["401 on KOI commands", "The API key itself", "Re-create the key with the xt-Administrator role"],
+    ["Engine is not connected", "The Cortex engine is offline", "Every koi- command fails before reaching KOI. Restart the engine"],
+    ["No events after enabling fetch", "Only one cycle has run", "Wait two cycles, then re-check Test 2"],
+    ["Everything triages as Suspicious", "The alert carried no KOI detail", "Check the correlation rule passes KOI fields through"],
+    ["Tracker List stays empty", "No Core REST API instance", "Configure it — Test 9 cannot pass without it"],
+    ["Scan run does nothing", "Refresh has not run yet", "Run the Refresh job first; an empty tracker means nothing is due"],
+    ["A Job never fires", "It was created disabled", "Enable it and confirm a next-run time is shown"],
+  ];
+  const y0 = 1.5, rh = 0.5;
+  rows.forEach(([sym, cause, fix], i) => {
+    const y = y0 + i * (rh + 0.11);
+    card(s, M, y, W, rh);
+    s.addText(sym, { x: M + 0.3, y: y + 0.14, w: 3.3, h: 0.26, fontSize: 11, bold: true, color: WHITE, fontFace: F, margin: 0, valign: "top" });
+    s.addText(cause, { x: M + 3.8, y: y + 0.15, w: 3.4, h: 0.26, fontSize: 10, color: AMBER, fontFace: F, margin: 0, valign: "top" });
+    s.addText(fix, { x: M + 7.4, y: y + 0.15, w: W - 7.7, h: 0.26, fontSize: 10, color: BODY, fontFace: F, margin: 0, valign: "top" });
+  });
+  s.addText("Six of these eight are tenant setup, not the pack. Check the amber panel on the test before raising a defect.",
+    { x: M, y: y0 + 8 * (rh + 0.11) + 0.1, w: W, h: 0.3, fontSize: 10.5, italic: true, color: MUTED, fontFace: F, margin: 0, valign: "top" });
+}
+
+/* ============================ Sign-off ============================ */
+{
+  const s = newSlide();
+  s.addShape(pres.ShapeType.ellipse, { x: 11.4, y: -3.4, w: 4.8, h: 4.8,
+    fill: { color: GREEN, transparency: 93 }, line: { color: GREEN, width: 1 } });
   heading(s, "Sign-off", "One line of evidence per test");
   const checks = [
-    ["1", "Test returns Success and koi-devices-list returns rows"],
-    ["2", "koi_koi_raw event counts grow between fetch cycles"],
-    ["3", "Read commands return tenant data with no 403"],
-    ["4", "Dashboard widgets render and XDM fields are populated"],
-    ["5", "Triage completes with a verdict and both summaries"],
-    ["6", "Item and device investigations carry real KOI data"],
-    ["7", "Run parks on approval; blocklist write did not execute"],
-    ["8", "MCP audit flags items at or above the threshold"],
-    ["9", "Job returns ScriptResult ok with an action_id"],
+    ["1", "Test returns Success; devices list returns rows"],
+    ["2", "koi_koi_raw grows between collection cycles"],
+    ["3", "Distinct alerts far below raw rows — and that is correct"],
+    ["4", "Dashboard renders; counts stay stable across fetches"],
+    ["5", "A verdict is reached; low risk auto-closes"],
+    ["6", "Investigation shows catalog risk and both governance counts"],
+    ["7", "Response parks on approval; blocklist untouched until approved"],
+    ["8", "MCP audit returns servers at or above the threshold"],
+    ["9", "Tracker List is created and fills with endpoints"],
+    ["10", "Scan marks only due, connected endpoints; re-run is a no-op"],
+    ["11", "Library queries run and return results"],
+    ["12", "Simulated counts match the summary exactly"],
   ];
   const cw = (W - 0.4) / 2;
   checks.forEach(([n, t], i) => {
-    const col = i < 5 ? 0 : 1;
-    const row = i < 5 ? i : i - 5;
-    const x = M + col * (cw + 0.4);
-    const y = 1.72 + row * 0.78;
-    card(s, x, y, cw, 0.64);
-    chip(s, x + 0.22, y + 0.14, n, GREEN, 0.36);
-    s.addText(t, { x: x + 0.76, y: y + 0.15, w: cw - 1.0, h: 0.4, fontSize: 11, color: BODY, fontFace: F, margin: 0, lineSpacing: 13, valign: "top" });
+    const col = i < 6 ? 0 : 1, row = i < 6 ? i : i - 6;
+    const x = M + col * (cw + 0.4), y = 1.55 + row * 0.72;
+    card(s, x, y, cw, 0.6);
+    chip(s, x + 0.22, y + 0.13, n, GREEN, 0.34);
+    s.addText(t, { x: x + 0.74, y: y + 0.15, w: cw - 0.98, h: 0.36, fontSize: 10.5, color: BODY, fontFace: F, margin: 0, lineSpacing: 12, valign: "top" });
   });
-  card(s, M + cw + 0.4, 1.72 + 4 * 0.78, cw, 0.64, CARD_HI);
-  s.addText("All nine green → the pack is ready for production use.", {
-    x: M + cw + 0.62, y: 1.72 + 4 * 0.78 + 0.16, w: cw - 0.44, h: 0.4,
-    fontSize: 11, bold: true, italic: true, color: GREEN, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addText("Full detail for every step is in the customer guide — KOI_Integration_Customer_Guide_v1.4.0 (Word and PDF).", {
-    x: M, y: 6.35, w: W, h: 0.3, fontSize: 11, color: MUTED, fontFace: F, margin: 0, valign: "top",
-  });
-  s.addNotes("Test 7 is the gate. The other eight can be re-run any time; test 7 should be re-run after any change to the response playbook.");
+  card(s, M, 5.95, W, 0.75, CARD_HI);
+  s.addText("All twelve green — the pack is ready for production use.", { x: M + 0.34, y: 6.15, w: 8.0, h: 0.32,
+    fontSize: 13, bold: true, italic: true, color: GREEN, fontFace: F, margin: 0, valign: "top" });
+  s.addText("Full detail in KOI_Integration_Customer_Guide_v1.4.0. Diagnostics in the troubleshooting guide.",
+    { x: M, y: 6.85, w: W, h: 0.3, fontSize: 10.5, color: MUTED, fontFace: F, margin: 0, valign: "top" });
 }
 
 const out = path.join(__dirname, "KOI_Content_Pack_Test_Guide.pptx");
